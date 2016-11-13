@@ -1,0 +1,1 @@
+clang++   -g -Wall -std=c++11 -stdlib=libc++ -gcc-toolchain -v   CMakeFiles/trader.dir/src/main.cpp.o CMakeFiles/trader.dir/src/net/SocketPoolTaskRunner.cpp.o CMakeFiles/trader.dir/src/net/sockets/DataGramSocket.cpp.o CMakeFiles/trader.dir/src/net/sockets/EventSocket.cpp.o CMakeFiles/trader.dir/src/net/sockets/UDPSocket.cpp.o  -o trader -rdynamic 
