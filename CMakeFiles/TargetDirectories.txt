@@ -1,3 +1,0 @@
-/media/sf_tradeengine/CMakeFiles/edit_cache.dir
-/media/sf_tradeengine/CMakeFiles/rebuild_cache.dir
-/media/sf_tradeengine/CMakeFiles/trader.dir
