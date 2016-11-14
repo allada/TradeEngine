@@ -6,9 +6,6 @@ ADD . /trader/
 
 RUN apt-get update && apt-get -y install cmake build-essential
 
-RUN rm -R /trader/CMakeFiles
-RUN rm /trader/CMakeCache.txt
-
 #ENV CC /usr/bin/clang-3.8
 
 RUN cd /trader; cmake .
