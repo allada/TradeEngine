@@ -1,4 +1,4 @@
-FROM trader_base_1.0
+FROM trader_base_1.1001
 
 WORKDIR /trader
 

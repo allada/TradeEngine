@@ -18,7 +18,6 @@ public:
     static void start();
 
 private:
-
     static void ioLoop();
     static void uiLoop();
 
@@ -36,6 +35,6 @@ private:
     static std::unique_ptr<std::thread> thread_ui_;
 };
 
-}; /* net */
+} /* net */
 
 #endif /* SocketPoolTaskRunner_h */

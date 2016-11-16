@@ -1,13 +1,18 @@
+#include "base/Allocator.h"
 #include "net/sockets/DataGramSocket.h"
 #include "conf.h"
 
 using namespace net;
 
 DataGramSocket::DataGramSocket()
- : socket_(socket(AF_INET, SOCK_DGRAM, 0))
+    : UDPSocket()
 {
+    socket_ = socket(AF_INET, SOCK_DGRAM, 0);
     ASSERT(socket_ == -1, "socket() call failed");
 }
+
+
+
 /*
 void DataGramSocket::broadcast(const char* message, size_t len)
 {

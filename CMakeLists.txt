@@ -5,12 +5,22 @@ set(BASEPATH                          "${CMAKE_SOURCE_DIR}/src")
 include_directories("${BASEPATH}")
 
 set(
-    SRC_LIST
-        src/main.cpp
+    HEADERS
+        src/net/SocketPoolTaskRunner.h
+        src/net/sockets/DataGramSocket.h
+        src/net/sockets/EventSocket.h
+        src/net/sockets/UDPSocket.h
+        src/net/sockets/SocketEventDeligate.h
+)
+
+set(
+    SOURCES
         src/net/SocketPoolTaskRunner.cpp
         src/net/sockets/DataGramSocket.cpp
         src/net/sockets/EventSocket.cpp
         src/net/sockets/UDPSocket.cpp
+        src/main.cpp
 )
 
-add_executable(trader ${SRC_LIST})
+add_executable(trader ${HEADERS} ${SOURCES})
+target_link_libraries(trader pthread)

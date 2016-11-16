@@ -1,5 +1,5 @@
 #!/bin/sh
-version="1.0";
+version="1.1001";
 
 if [[ -z $(docker images -a | grep "trader_base_$version ") ]] ; then
     docker images -a | grep trader_ | awk '{print $1}' | xargs docker rmi

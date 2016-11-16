@@ -6,14 +6,19 @@
 
 namespace net {
 
-class EventSocket : public SocketEventDeligate {
+class EventSocket : virtual public SocketEventDeligate {
 public:
+    EventSocket();
     SocketEventDeligate::FileDescriptorId fileDescriptor() override { return socket_; }
+    void shouldProcessEvent(const std::vector<char> &) override { }
+    void processEvent() override { }
 
     std::unique_ptr<EventSocket> copy()
     {
         return WrapUnique(new EventSocket(this));
     }
+
+    void triggerEvent();
 
 protected:
     SocketEventDeligate::FileDescriptorId socket_;

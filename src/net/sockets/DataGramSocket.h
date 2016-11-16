@@ -3,13 +3,15 @@
 
 #include "net/sockets/UDPSocket.h"
 
-using namespace net;
+namespace net {
 
 class DataGramSocket : public UDPSocket {
 public:
     DataGramSocket();
 
     //void broadcast(const char*, size_t);
-}
+};
+
+} /* net */
 
 #endif /* DataGramSocket_h */

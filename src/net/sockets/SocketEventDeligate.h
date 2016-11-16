@@ -1,22 +1,25 @@
-#ifndef SocketDeligate_h
-#define SocketDeligate_h
+#ifndef SocketEventDeligate_h
+#define SocketEventDeligate_h
+
+#include <vector>
 
 namespace net {
 
 class SocketEventDeligate {
 public:
+    SocketEventDeligate() { }
     using FileDescriptorId = int;
 
     /* Is ran on IO thread */
-    virtual FileDescriptorId fileDescriptor();
+    virtual FileDescriptorId fileDescriptor() = 0;
 
     /* Is ran on IO thread. Should be fast and only check if data should be passed for processing. */
-    virtual void shouldProcessEvent(const std::vector<char> &data);
+    virtual void shouldProcessEvent(const std::vector<char> &data) = 0;
 
     /* Is ran on UI thread. */
-    virtual void processEvent(); 
+    virtual void processEvent() = 0;
 };
 
-}; /* net */
+} /* net */
 
-#endif /* SocketDeligate_h */
+#endif /* SocketEventDeligate_h */

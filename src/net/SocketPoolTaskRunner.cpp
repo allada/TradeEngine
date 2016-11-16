@@ -8,6 +8,11 @@
 
 using namespace net;
 
+SocketEventDeligate::FileDescriptorId SocketPoolTaskRunner::epollfd_;
+std::unordered_map<SocketEventDeligate::FileDescriptorId, std::unique_ptr<SocketEventDeligate>> SocketPoolTaskRunner::descriptors_;
+std::unique_ptr<std::thread> SocketPoolTaskRunner::thread_io_;
+std::unique_ptr<std::thread> SocketPoolTaskRunner::thread_ui_;
+
 void SocketPoolTaskRunner::start()
 {
     //event_socket_writer_ = WrapUnique(new EventSocket());

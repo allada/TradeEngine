@@ -1,5 +1,6 @@
 #include "net/sockets/UDPSocket.h"
 
+/*
 bool hasData()
 {
     
@@ -7,5 +8,6 @@ bool hasData()
 
 size_t receive(char* data, size_t len)
 {
-    return recv(sock_, data, len, 0);
+    return recv(socket_, data, len, 0);
 }
+*/
