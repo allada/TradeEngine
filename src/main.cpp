@@ -4,7 +4,6 @@
 #include "net/SocketPoolTaskRunner.h"
 
 std::string coin_name;
-
 int main(int argc, char* argv[])
 {
     if (argc < 2 || strlen(argv[1]) < 1) {

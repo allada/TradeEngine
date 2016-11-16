@@ -1,7 +1,7 @@
 #ifndef DataGramSocket_h
 #define DataGramSocket_h
 
-#include "src/net/sockets/UDPSocket.h"
+#include "net/sockets/UDPSocket.h"
 
 using namespace net;
 

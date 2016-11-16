@@ -1,5 +1,5 @@
-#include "src/net/sockets/DataGramSocket.h"
-#include "src/conf.h"
+#include "net/sockets/DataGramSocket.h"
+#include "conf.h"
 
 using namespace net;
 

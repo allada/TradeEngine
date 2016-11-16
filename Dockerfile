@@ -1,16 +1,10 @@
-FROM ubuntu
+FROM trader_base_1.0
 
-ADD . /trader/
+WORKDIR /trader
 
-#RUN apt-get update && apt-get -y install clang-3.8 cmake build-essential
+RUN rm -R /trader/CMakeFiles &> /dev/null
+RUN rm /trader/CMakeCache.txt &> /dev/null
 
-RUN apt-get update && apt-get -y install cmake build-essential
+VOLUME ["/trader"]
 
-RUN rm -R /trader/CMakeFiles
-RUN rm /trader/CMakeCache.txt
-
-#ENV CC /usr/bin/clang-3.8
-
-RUN cd /trader; cmake .
-
-# docker build --tag trader .; docker rm trader; docker create --name trader trader; docker run -i -t trader bash
+ENTRYPOINT bash -c "cmake .; make"

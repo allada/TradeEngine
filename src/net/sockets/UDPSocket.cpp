@@ -1,3 +1,5 @@
+#include "net/sockets/UDPSocket.h"
+
 bool hasData()
 {
     

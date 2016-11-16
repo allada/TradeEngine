@@ -3,11 +3,11 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
-#include "Socket.h"
+#include "net/sockets/SocketEventDeligate.h"
 
 namespace net {
 
-class UDPSocket : public FileDescriptor {
+class UDPSocket : public SocketEventDeligate {
 public:
     FileDescriptor::FileDescriptorId fileDescriptor() override { return socket_; }
 
