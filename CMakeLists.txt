@@ -17,7 +17,6 @@ set(
     SOURCES
         src/net/SocketPoolTaskRunner.cpp
         src/net/sockets/DataGramSocket.cpp
-        src/net/sockets/EventSocket.cpp
         src/net/sockets/UDPSocket.cpp
         src/main.cpp
 )

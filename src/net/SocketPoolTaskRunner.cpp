@@ -1,42 +1,62 @@
-#include "SocketPoolTaskRunner.h"
 #include "base/Allocator.h"
-#include <sys/epoll.h>
+#include "SocketPoolTaskRunner.h"
 #include <string.h>
+#include <sys/epoll.h>
 #include <unistd.h>
 
 #define MAXEVENTS 0xF
 
 using namespace net;
+using namespace SocketPoolTaskRunner;
 
-SocketEventDeligate::FileDescriptorId SocketPoolTaskRunner::epollfd_;
-std::unordered_map<SocketEventDeligate::FileDescriptorId, std::unique_ptr<SocketEventDeligate>> SocketPoolTaskRunner::descriptors_;
-std::unique_ptr<std::thread> SocketPoolTaskRunner::thread_io_;
-std::unique_ptr<std::thread> SocketPoolTaskRunner::thread_ui_;
+void ioLoop(); 
+void uiLoop();
+void checkIoSignal();
+void checkUiSignal();
+
+SocketEventDeligate::FileDescriptorId epollfd_(static_cast<int>(epoll_create1(0)));
+
+std::mutex ui_task_queue_lock_;
+std::condition_variable ui_task_event_;
+std::queue<Closure> ui_task_queue_;
+
+std::unordered_map<SocketEventDeligate::FileDescriptorId, SocketEventDeligate*> descriptors_;
+
+EventSocket<ThreadSignals> io_thread_chanel(std::bind(&checkIoSignal));
+EventSocket<ThreadSignals> ui_thread_chanel(std::bind(&checkUiSignal));
+
+std::thread thread_io_(ioLoop);
+std::thread thread_ui_(uiLoop);
+
+bool runIoThread = true;
+bool runUiThread = true;
 
 void SocketPoolTaskRunner::start()
 {
-    //event_socket_writer_ = WrapUnique(new EventSocket());
-    //this.addSocket(event_socket_writer_.clone());
-    epollfd_ = static_cast<int>(epoll_create1(0));
-
-    for (auto&& descriptor : descriptors_) {
-        ASSERT(epollfd_ == -1, "create_reactor() call failed");
-
-        struct epoll_event ev;
-        ev.events = EPOLLIN;
-        ev.data.fd = static_cast<int>(descriptor.second->fileDescriptor());
-
-        if (epoll_ctl(epollfd_, EPOLL_CTL_ADD, ev.data.fd, &ev) == -1)
-            std::fprintf(stderr, "Error epoll_ctrl()\n");
-    }
-
-    thread_io_ = WrapUnique(new std::thread(SocketPoolTaskRunner::ioLoop));
-    thread_ui_ = WrapUnique(new std::thread(SocketPoolTaskRunner::uiLoop));
+    addSocket(&io_thread_chanel);
 }
 
-void SocketPoolTaskRunner::addSocket(std::unique_ptr<SocketEventDeligate> descriptor)
+void SocketPoolTaskRunner::terminate()
 {
-    ASSERT(epollfd_ == -1, "create_reactor() call failed");
+    io_thread_chanel.data = Terminate;
+    io_thread_chanel.triggerEvent();
+    thread_io_.join();
+    thread_ui_.join();
+}
+
+void checkIoSignal()
+{
+    runIoThread = false;
+}
+
+void checkUiSignal()
+{
+    runUiThread = false;
+}
+
+void SocketPoolTaskRunner::addSocket(SocketEventDeligate* descriptor)
+{
+    ASSERT(epollfd_ == -1, "epoll_create1() call failed");
 
     struct epoll_event ev;
     ev.events = EPOLLET | EPOLLIN;
@@ -44,14 +64,13 @@ void SocketPoolTaskRunner::addSocket(std::unique_ptr<SocketEventDeligate> descri
     if (epoll_ctl(epollfd_, EPOLL_CTL_ADD, ev.data.fd, &ev) == -1)
         std::fprintf(stderr, "Error epoll_ctl()\n");
 
-    descriptors_.emplace(std::make_pair(descriptor->fileDescriptor(), std::move(descriptor)));
+    descriptors_.emplace(std::make_pair(descriptor->fileDescriptor(), descriptor));
 }
 
-void SocketPoolTaskRunner::ioLoop()
+void ioLoop()
 {
     std::array<epoll_event, MAXEVENTS> events{};
-    for (;;) {
-        bool served_data = false;
+    while (runIoThread) {
         int len = epoll_wait(epollfd_, events.data(), events.size(), -1);
         switch (len) {
         case EBADF:
@@ -87,14 +106,17 @@ void SocketPoolTaskRunner::ioLoop()
                 close(event.data.fd);
                 continue;
             }
+            SocketEventDeligate::FileDescriptorId fileDescriptor = static_cast<SocketEventDeligate::FileDescriptorId>(event.data.fd);
+            SocketEventDeligate* handler = descriptors_.at(fileDescriptor);
+            // TODO: Assert deligate.
+            handler->processEvent();
             //ui_task_queue_.push(std::bind(&handleData, ));
-            served_data = true;
         }
     }
     ui_task_event_.notify_one();
 }
 
-void SocketPoolTaskRunner::uiLoop()
+void uiLoop()
 {
 
 }

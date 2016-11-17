@@ -6,14 +6,27 @@
 
 using namespace net;
 
-EventSocket::EventSocket()
-    : current_value_(0)
+static uint64_t dummyData = 1;
+
+template <class T>
+EventSocket<T>::EventSocket(const Closure& handler)
+    : handler_(handler)
 {
     socket_ = static_cast<SocketEventDeligate::FileDescriptorId>(eventfd(0, EFD_NONBLOCK));
     ASSERT(socket_ == -1, "eventfd() call failed");
 }
 
-void EventSocket::triggerEvent()
+template <class T>
+void EventSocket<T>::triggerEvent()
 {
-    write(static_cast<int>(socket_), &current_value_, sizeof(current_value_));
+    // TODO maybe remove this?
+    int len = write(static_cast<int>(socket_), &dummyData, sizeof(dummyData));
+
+}
+
+template <class T>
+void EventSocket<T>::processEvent()
+{
+    // TODO: Assert thread
+    handler_();
 }

@@ -9,7 +9,7 @@ namespace net {
 
 class UDPSocket : virtual public SocketEventDeligate {
 public:
-    SocketEventDeligate::FileDescriptorId fileDescriptor() override { return socket_; }
+    SocketEventDeligate::FileDescriptorId fileDescriptor() const override { return socket_; }
     void shouldProcessEvent(const std::vector<char> &) override { }
     void processEvent() override { }
 

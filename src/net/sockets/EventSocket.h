@@ -6,28 +6,24 @@
 
 namespace net {
 
+template <class T>
 class EventSocket : virtual public SocketEventDeligate {
 public:
-    EventSocket();
-    SocketEventDeligate::FileDescriptorId fileDescriptor() override { return socket_; }
+    EventSocket(const Closure&);
+    SocketEventDeligate::FileDescriptorId fileDescriptor() const override { return socket_; }
     void shouldProcessEvent(const std::vector<char> &) override { }
-    void processEvent() override { }
-
-    std::unique_ptr<EventSocket> copy()
-    {
-        return WrapUnique(new EventSocket(this));
-    }
+    void processEvent() override;
 
     void triggerEvent();
 
+    T data;
 protected:
+    Closure handler_;
     SocketEventDeligate::FileDescriptorId socket_;
-    uint64_t current_value_;
-
-private:
-    EventSocket(EventSocket* event_socket) : current_value_(event_socket->fileDescriptor()) { }
 };
 
 } /* net */
 
+// This is needed to prevent linking issues with template classes.
+#include "EventSocket.cpp"
 #endif /* EventSocket_h */

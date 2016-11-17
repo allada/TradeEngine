@@ -1,4 +1,4 @@
-FROM trader_base_1.1001
+FROM trader_base_1.1002
 
 WORKDIR /trader
 
@@ -7,4 +7,4 @@ RUN rm /trader/CMakeCache.txt &> /dev/null
 
 VOLUME ["/trader"]
 
-ENTRYPOINT bash -c "cmake .; make"
+ENTRYPOINT bash -c "cmake .; make && echo && ./trader"
