@@ -7,18 +7,36 @@
 namespace net {
 
 template <class T>
-class EventSocket : virtual public SocketEventDeligate {
+class EventSocket : public SocketEventDeligate {
 public:
-    EventSocket(const Closure&);
+    EventSocket(bool);
+
     SocketEventDeligate::FileDescriptorId fileDescriptor() const override { return socket_; }
     void shouldProcessEvent(const std::vector<char> &) override { }
-    void processEvent() override;
+
+    bool shouldRunIoHandler() override { return hasIoThreadHandler; }
+    void ioThreadHandler() override;
+    bool shouldRunUiHandler() override { return hasUiThreadHandler; }
+    void uiThreadHandler() override;
+
+    void setIoThreadHandler(const Closure& handler) {
+        hasIoThreadHandler = true;
+        ioThreadHandler_ = handler;
+    }
+    void setUiThreadHandler(const Closure& handler) {
+        hasUiThreadHandler = true;
+        uiThreadHandler_ = handler;
+    }
 
     void triggerEvent();
+    void wait();
 
     T data;
 protected:
-    Closure handler_;
+    bool hasIoThreadHandler;
+    bool hasUiThreadHandler;
+    Closure ioThreadHandler_;
+    Closure uiThreadHandler_;
     SocketEventDeligate::FileDescriptorId socket_;
 };
 

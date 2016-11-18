@@ -9,24 +9,34 @@ using namespace net;
 static uint64_t dummyData = 1;
 
 template <class T>
-EventSocket<T>::EventSocket(const Closure& handler)
-    : handler_(handler)
+EventSocket<T>::EventSocket(bool shouldBlock)
 {
-    socket_ = static_cast<SocketEventDeligate::FileDescriptorId>(eventfd(0, EFD_NONBLOCK));
+    socket_ = static_cast<SocketEventDeligate::FileDescriptorId>(eventfd(0, (shouldBlock ? 0 : EFD_NONBLOCK) | EFD_SEMAPHORE));
     ASSERT(socket_ == -1, "eventfd() call failed");
 }
 
 template <class T>
 void EventSocket<T>::triggerEvent()
 {
-    // TODO maybe remove this?
-    int len = write(static_cast<int>(socket_), &dummyData, sizeof(dummyData));
-
+    write(static_cast<int>(socket_), &dummyData, sizeof(dummyData));
 }
 
 template <class T>
-void EventSocket<T>::processEvent()
+void EventSocket<T>::ioThreadHandler()
 {
     // TODO: Assert thread
-    handler_();
+    ioThreadHandler_();
+}
+
+template <class T>
+void EventSocket<T>::uiThreadHandler()
+{
+    // TODO: Assert thread
+    uiThreadHandler_();
+}
+
+template <class T>
+void EventSocket<T>::wait()
+{
+    read(socket_, nullptr, sizeof(uint64_t));
 }

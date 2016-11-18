@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 2.6)
 project (TradeEngine)
-set(CMAKE_CXX_FLAGS                   "-g -Wall -std=c++11 -v")
+set(CMAKE_CXX_FLAGS                   "-g -O0 -Wall -std=c++11 -v -lSegFault")
 set(BASEPATH                          "${CMAKE_SOURCE_DIR}/src")
 include_directories("${BASEPATH}")
 

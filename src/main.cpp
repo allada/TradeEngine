@@ -7,6 +7,7 @@ std::string coin_name;
 
 void terminate()
 {
+    fprintf(stderr, "Terminating\n");
     net::SocketPoolTaskRunner::terminate();
     exit(1);
 }
@@ -19,6 +20,7 @@ int main(int argc, char* argv[])
         fprintf(stderr, "First parameter must be a valid coin abbr name.\n");
         terminate();
     }
-
-    coin_name = argv[1];
+    // TODO do something better.
+    while(true) {};
+    //coin_name = argv[1];
 }
