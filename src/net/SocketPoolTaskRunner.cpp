@@ -1,7 +1,9 @@
 #include "base/Allocator.h"
+#include "base/ThreadManager.h"
 #include "SocketPoolTaskRunner.h"
 #include <string.h>
 #include <sys/epoll.h>
+#include <unordered_map>
 
 #define MAXEVENTS 0xFF
 
@@ -15,7 +17,6 @@ void closeUiThread();
 
 SocketEventDeligate::FileDescriptorId epollfd_(static_cast<int>(epoll_create1(0)));
 
-std::mutex ui_task_queue_lock_;
 bool have_data_ = false;
 
 // TODO Make lock free queue class.
@@ -29,8 +30,9 @@ std::unordered_map<SocketEventDeligate::FileDescriptorId, SocketEventDeligate*> 
 EventSocket<ThreadSignals> io_thread_chanel(false);
 EventSocket<bool> ui_thread_chanel(true);
 
-std::thread thread_io_(ioLoop);
-std::thread thread_ui_(uiLoop);
+
+ThreadManager::Thread thread_io_(ioLoop);
+ThreadManager::Thread thread_ui_(uiLoop);
 
 bool runIoThread = true;
 bool runUiThread = true;
@@ -49,7 +51,7 @@ void SocketPoolTaskRunner::terminate()
     io_thread_chanel.triggerEvent();
     thread_io_.join();
     thread_ui_.join();
-    fprintf(stderr, "Threads closed\n");
+    DEBUG("Threads closed");
 }
 
 void closeIoThread()
@@ -70,39 +72,37 @@ void SocketPoolTaskRunner::addSocket(SocketEventDeligate* descriptor)
     ev.events = EPOLLET | EPOLLIN;
     ev.data.fd = static_cast<int>(descriptor->fileDescriptor());
     if (epoll_ctl(epollfd_, EPOLL_CTL_ADD, ev.data.fd, &ev) == -1)
-        std::fprintf(stderr, "Error epoll_ctl()\n");
+        WARNING("Error epoll_ctl()");
 
     descriptors_.emplace(std::make_pair(descriptor->fileDescriptor(), descriptor));
 }
 
 void ioLoop()
 {
+    //TerminalColor::registerThread(TerminalColor::GREEN);
     std::array<epoll_event, MAXEVENTS> events{};
     while (runIoThread) {
-        fprintf(stderr, "Entered IoThread\n");
+        DEBUG("Started IoThread");
         int len = epoll_wait(epollfd_, events.data(), events.size(), -1);
         switch (len) {
         case EBADF:
-            fprintf(stderr, "epfd is not a valid file descriptor.\n");
+            WARNING("epfd is not a valid file descriptor.");
             break;
         case EFAULT:
-            fprintf(stderr, "The memory area pointed to by events is not "
-                            "accessible with write permissions.\n");
+            WARNING("The memory area pointed to by events is not accessible with write permissions.");
             break;
         case EINTR:
-            fprintf(stderr, "The call was interrupted by a signal handler "
-                            "before either (1) any of the requested events "
-                            "occurred or (2) the timeout expired;");
+            WARNING("The call was interrupted by a signal handler before either (1) any of the requested events "
+                    "occurred or (2) the timeout expired;");
             break;
         case EINVAL:
-            fprintf(stderr, "epfd is not an epoll file descriptor, or "
-                            "maxevents is less than or equal to zero.");
+            WARNING("epfd is not an epoll file descriptor, or maxevents is less than or equal to zero.");
             break;
         }
         for (int i = 0; i < len; ++i) {
             epoll_event event(events[i]);
             if (event.events & EPOLLERR) {
-                fprintf(stderr, "Socket Error\n");
+                WARNING("Socket Error");
                 close(event.data.fd);
                 continue;
             }
@@ -115,7 +115,8 @@ void ioLoop()
                 close(event.data.fd);
                 continue;
             }
-            SocketEventDeligate::FileDescriptorId fileDescriptor = static_cast<SocketEventDeligate::FileDescriptorId>(event.data.fd);
+            SocketEventDeligate::FileDescriptorId fileDescriptor =
+                    static_cast<SocketEventDeligate::FileDescriptorId>(event.data.fd);
             SocketEventDeligate* deligate = descriptors_.at(fileDescriptor);
             // TODO: Assert deligate.
             if (deligate->shouldRunIoHandler())
@@ -140,13 +141,14 @@ void ioLoop()
             }
         }
     }
-    fprintf(stderr, "Closed IO Thread\n");
+    DEBUG("Closed IO Thread");
 }
 
 void uiLoop()
 {
+    //TerminalColor::registerThread(TerminalColor::BLUE);
     while (runUiThread) {
-        fprintf(stderr, "Entered UiThread\n");
+        DEBUG("Started UiThread");
         ui_thread_chanel.wait();
         if (!have_data_)
             continue;
@@ -158,7 +160,7 @@ void uiLoop()
         }
         have_data_ = false;
     }
-    fprintf(stderr, "Closed UI Thread\n");
+    DEBUG("Closed UI Thread");
 }
 
 void handleData(const std::vector<char> &data)

@@ -1,10 +1,6 @@
 #ifndef SocketPoolTaskRunner_h
 #define SocketPoolTaskRunner_h
 
-#include <condition_variable>
-#include <thread>
-#include <queue>
-#include <unordered_map>
 #include "sockets/SocketEventDeligate.h"
 #include "sockets/EventSocket.h"
 
