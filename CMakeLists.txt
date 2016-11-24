@@ -9,31 +9,24 @@ include_directories("${BASEPATH}")
 
 set(
     HEADERS
-        src/base/Thread/QueueThread.h
-        src/base/Thread/Thread.h
-        src/base/Thread/Threader.h
-        src/base/Thread/MainThread.h
-        src/base/Thread/ThreadEventer.h
-        src/base/Thread/CrossThreadEventer.h
-        src/base/Thread/ThreadManager.h
-        src/base/Thread/ThreadQueue.h
-        src/base/Common.h
-
-        #src/net/SocketPoolTaskRunner.h
-        src/net/sockets/DataGramSocket.h
-        src/net/sockets/EventSocket.h
-        src/net/sockets/UDPSocket.h
-        src/net/sockets/SocketEventDeligate.h
+        src/Thread/QueueThread.h
+        src/Thread/Thread.h
+        src/Thread/Threader.h
+        src/Thread/MainThread.h
+        src/Thread/ThreadEventer.h
+        src/Thread/CrossThreadEventer.h
+        src/Thread/ThreadManager.h
+        src/Thread/ThreadQueue.h
+        src/Common.h
 )
 
 set(
     SOURCES
-        src/base/Thread/ThreadManager.cpp
-        src/base/Thread/CrossThreadEventer.cpp
-        src/base/Thread/QueueThread.cpp
-        #src/net/SocketPoolTaskRunner.cpp
-        src/net/sockets/DataGramSocket.cpp
-        src/net/sockets/UDPSocket.cpp
+        src/Common.cpp
+        src/Thread/Threader.cpp
+        src/Thread/ThreadManager.cpp
+        src/Thread/CrossThreadEventer.cpp
+        src/Thread/QueueThread.cpp
         src/main.cpp
 )
 

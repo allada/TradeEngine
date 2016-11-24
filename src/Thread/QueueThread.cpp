@@ -1,4 +1,5 @@
 #include "QueueThread.h"
+#include "Threader.h"
 #include "../Common.h"
 
 using namespace Thread;
@@ -9,6 +10,7 @@ QueueThread::QueueThread(std::unique_ptr<std::thread> thread, const std::string&
     : Thread(std::move(thread), name)
     , epollfd_(static_cast<int>(epoll_create1(0)))
     , thread_signal_channel_(std::bind(&QueueThread::handleThreadSignal_, this, std::placeholders::_1))
+    , running_(true)
 {
     addTaskChannel(&thread_signal_channel_);
 }
@@ -29,8 +31,10 @@ void QueueThread::addTaskChannel(CrossThreadEventer* event)
 void QueueThread::kill()
 {
     if (id() == thisThreadId()) {
+        DEBUG("Got shutdown command");
         running_ = false;
     } else {
+        DEBUG("Killing thread: %s", this->name().c_str());
         thread_signal_channel_.send(Kill);
     }
 }
@@ -67,8 +71,11 @@ void QueueThread::entryPoint()
         for (int i = 0; i < len; ++i) {
             ThreadEventer* threadEvent = threadEventFromFileDescriptor_(events[i]);
             threadEvent->run();
+            if (!running_)
+                break;
         }
     }
+    DEBUG("Exited thread loop");
 }
 
 ThreadEventer* QueueThread::threadEventFromFileDescriptor_(epoll_event event)
@@ -85,7 +92,7 @@ ThreadEventer* QueueThread::threadEventFromFileDescriptor_(epoll_event event)
         threadEvent->close();
         return nullptr;
     }
-    ASSERT_NE((event.events & EPOLLIN), EPOLLIN, "Socket should be EPOLLIN.");
+    ASSERT_EQ((event.events & EPOLLIN), EPOLLIN, "Socket should be EPOLLIN.");
     return threadEvent;
 }
 

@@ -10,7 +10,7 @@ template <class T>
 class ThreadQueue {
 private:
     typedef uint8_t queue_size_t;
-    static const int MAX_SIZE = 0x100;
+    static const int MAX_SIZE = 1 << sizeof(queue_size_t) * 8;
 public:
     int count()
     {
@@ -38,7 +38,7 @@ public:
 
     T pop()
     {
-        ASSERT_EQ(read_index_, write_index_, "There does not appear to be anything in the queue to read.");
+        ASSERT_NE(read_index_, write_index_, "There does not appear to be anything in the queue to read.");
         T item = data_[read_index_];
         read_index_ = (read_index_ + 1) % MAX_SIZE;
         return item;

@@ -15,7 +15,7 @@ public:
     ~Thread() { }
 
     const std::string& name() const override { return name_; };
-    void join() override { return thread_->join(); }
+    void join() override { thread_->join(); }
 
     ThreadId id() const override { return thread_->get_id(); }
 
