@@ -8,6 +8,8 @@
 #include "Thread/ThreadManager.h"
 #include "Thread/MainThread.h"
 
+#include <chrono>
+
 std::shared_ptr<Thread::MainThread> mainThread;
 
 std::string coin_name;
@@ -17,8 +19,7 @@ void signalHandler(int signal)
     ASSERT_EQ(Thread::thisThreadId(), mainThread->id(), "signalHandler must be triggerd from mainThread only");
     DEBUG("Terminating");
     Thread::ThreadManager::killAll();
-    DEBUG("Main thread closing");
-    exit(signal);
+    //exit(signal);
 }
 
 int main(int argc, char* argv[])
@@ -39,9 +40,10 @@ int main(int argc, char* argv[])
         raise(SIGINT);
     }
     coin_name = argv[1];
-    Thread::ThreadManager::killAll();
-    exit(1);
+    //Thread::ThreadManager::killAll();
+    //exit(1);
+    //std::this_thread::sleep_for(std::chrono::seconds(500));
     Thread::ThreadManager::joinAll();
-    DEBUG("All threads joined");
+    DEBUG("Exiting main function");
     return 0;
 }

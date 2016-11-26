@@ -17,14 +17,14 @@ QueueThread::QueueThread(std::unique_ptr<std::thread> thread, const std::string&
 
 void QueueThread::addTaskChannel(CrossThreadEventer* event)
 {
-    ASSERT(epollfd_ == -1, "epoll_create1() must be valid");
+    ASSERT_NE(epollfd_, -1, "epoll_create1() must be valid");
 
     struct epoll_event ev;
     ev.events = EPOLLET | EPOLLIN;
     ev.data.fd = static_cast<int>(event->fileDescriptor());
-    if (epoll_ctl(epollfd_, EPOLL_CTL_ADD, ev.data.fd, &ev) == -1)
+    if (epoll_ctl(epollfd_, EPOLL_CTL_ADD, ev.data.fd, &ev) == -1) {
         WARNING("Error epoll_ctl()");
-
+    }
     thread_event_map_.emplace(std::make_pair(event->fileDescriptor(), event));
 }
 

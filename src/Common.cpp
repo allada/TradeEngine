@@ -3,6 +3,11 @@
 #include "Thread/Threader.h"
 
 #if IS_DEBUG
+    static inline const std::string resetColor()
+    {
+        return "\033[0;" + std::to_string(TerminalColor::DEFAULT) + 'm';
+    }
+
     const std::string& thisThreadName()
     {
         return Thread::thisThread()->name();
@@ -14,17 +19,15 @@
 
     std::string TerminalColor::colorizeTerminal(const std::string& data)
     {
-        if (!registeredTerminalColors.count(std::this_thread::get_id()))
+        if (registeredTerminalColors.count(std::this_thread::get_id()) == 0) {
             return data;
+        }
         Color color = registeredTerminalColors.at(std::this_thread::get_id());
-        fprintf(stderr, "%d\n", color);
-        return "\033[" + std::to_string(color) + data;
+        return "\033[1;" + std::to_string(color) + 'm' + data + resetColor();
     }
 
     void TerminalColor::registerThread()
     {
-        Color color = colors_[counter_ % sizeof(colors_)];
-        ++counter_;
-        registeredTerminalColors.emplace(std::this_thread::get_id(), color);
+        registeredTerminalColors.emplace(std::this_thread::get_id(), colors_[counter_++ % sizeof(colors_)]);
     }
 #endif

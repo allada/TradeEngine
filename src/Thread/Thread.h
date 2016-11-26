@@ -12,10 +12,13 @@ public:
     Thread(std::unique_ptr<std::thread> thread, const std::string& name)
         : thread_(std::move(thread))
         , name_(name) { }
-    ~Thread() { }
+    ~Thread() { WARNING("HERE! %s", name_.c_str());}
 
     const std::string& name() const override { return name_; };
-    void join() override { thread_->join(); }
+    void join() override {
+        if (thread_->joinable())
+        	thread_->join();
+    }
 
     ThreadId id() const override { return thread_->get_id(); }
 
