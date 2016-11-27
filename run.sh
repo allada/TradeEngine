@@ -1,5 +1,5 @@
 #!/bin/sh
-version="1.1004";
+version="1.1006";
 
 if [[ -z $(docker images -a | grep "trader_base_$version ") ]] ; then
     docker images -a | grep trader_ | awk '{print $1}' | xargs docker rmi
@@ -11,7 +11,6 @@ if [[ -z $(docker images -a | grep "trader_base_$version ") ]] ; then
     docker rmi -f trader;
     docker build --tag trader .;
     docker rm trader;
-    docker create --name trader trader;
 fi
 
-docker run -v `pwd`/:/trader -i -t trader
+docker run -v `pwd`/:/trader -it --rm trader
