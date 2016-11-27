@@ -69,8 +69,9 @@ void ThreadManager::joinAll()
         std::unique_lock<std::mutex> threadManagerLock(threadManagerMux_());
         threadCountChangeCV_().wait(threadManagerLock);
         while (staleThreads_().size()) {
-            staleThreads_().begin()->join();
-            staleThreads_().erase(staleThreads_.begin());
+            auto thread = *staleThreads_().begin();
+            thread->join();
+            staleThreads_().erase(thread);
         }
         threadManagerLock.unlock();
     } while (ThreadManager::activeThreads_().size() > 1);
@@ -93,7 +94,7 @@ std::condition_variable& ThreadManager::threadCountChangeCV_()
     return thread_count_change_cv_;
 }
 
-std::unordered_set<std::shared_ptr<Threader>>& staleThreads_()
+std::unordered_set<std::shared_ptr<Threader>>& ThreadManager::staleThreads_()
 {
     return stale_threads_;
 }

@@ -12,12 +12,15 @@ public:
     Thread(std::unique_ptr<std::thread> thread, const std::string& name)
         : thread_(std::move(thread))
         , name_(name) { }
-    ~Thread() { WARNING("HERE! %s", name_.c_str());}
+    ~Thread()
+    {
+        DEBUG("%s Thread Destructed", name_.c_str());
+    }
 
     const std::string& name() const override { return name_; };
     void join() override {
-        if (thread_->joinable())
-        	thread_->join();
+        ASSERT(thread_->joinable(), "Thread %s does not appear to be joinable", name_.c_str());
+        thread_->join();
     }
 
     ThreadId id() const override { return thread_->get_id(); }
