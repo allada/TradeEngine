@@ -38,7 +38,7 @@ using Closure = std::function<void()>;
     #include <thread>
     #include <unordered_map>
 
-    const std::string& thisThreadName();
+    const std::string& debugthisThreadName_();
 
     class TerminalColor {
     public:
@@ -58,10 +58,10 @@ using Closure = std::function<void()>;
     #define TEST(...) WARNING("TEST: %s in %s:%d", format(##__VA_ARGS__).c_str(), __FILE__, __LINE__)
 
     #define DEBUG(msg, ...) \
-        fprintf(stdout, (TerminalColor::colorizeTerminal("Thread %s: ") + msg + "\n").c_str(), thisThreadName().c_str(), ##__VA_ARGS__);
+        fprintf(stdout, (TerminalColor::colorizeTerminal("Thread %s: ") + msg + "\n").c_str(), debugthisThreadName_().c_str(), ##__VA_ARGS__);
 
     #define WARNING(msg, ...) \
-        fprintf(stdout, (TerminalColor::colorizeTerminal("Thread %s: ") + msg + "\n").c_str(), thisThreadName().c_str(), ##__VA_ARGS__);
+        fprintf(stdout, (TerminalColor::colorizeTerminal("Thread %s: ") + msg + "\n").c_str(), debugthisThreadName_().c_str(), ##__VA_ARGS__);
 
     #define ASSERT(condition, msg, ...) if (!condition) WARNING("ASSERT FAIL: \"%s\" in %s:%d", format(msg, ##__VA_ARGS__).c_str(), __FILE__, __LINE__)
     #define ASSERT_EQ(v1, v2, msg, ...) if (v1 != v2) WARNING("ASSERT FAIL %d == %d: \"%s\" in %s:%d", v1, v2, format(msg, ##__VA_ARGS__).c_str(), __FILE__, __LINE__)

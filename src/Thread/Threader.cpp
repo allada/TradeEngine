@@ -13,3 +13,8 @@ std::shared_ptr<Threader> Thread::thisThread()
 {
     return ThreadManager::thisThread();
 }
+
+const std::string& Thread::thisThreadName()
+{
+    return ThreadManager::thisThreadName();
+}

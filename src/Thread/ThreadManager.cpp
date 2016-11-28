@@ -14,6 +14,7 @@ static std::shared_ptr<Threader> main_thread_;
 static std::condition_variable thread_count_change_cv_;
 
 static thread_local std::shared_ptr<Threader> selfThread;
+static thread_local std::string selfThreadName;
 
 ThreadId ThreadManager::thisThreadId() {
     return std::this_thread::get_id();
@@ -24,14 +25,25 @@ std::shared_ptr<Threader> ThreadManager::thisThread()
     return selfThread;
 }
 
+const std::string& ThreadManager::thisThreadName()
+{
+    return selfThreadName;
+}
+
 void ThreadManager::setSelfThread_(std::shared_ptr<Threader> thread)
 {
     selfThread = thread;
 }
 
+void ThreadManager::setSelfThreadName_(const std::string& name)
+{
+    selfThreadName = name;
+}
+
 void ThreadManager::setMainThread(std::shared_ptr<Threader> thread)
 {
     REGISTER_THREAD_COLOR();
+    setSelfThreadName_(thread->name());
     setSelfThread_(thread);
     std::lock_guard<std::mutex> messanger_lock(threadManagerMux_());
     activeThreads_().emplace(thread->id(), thread);

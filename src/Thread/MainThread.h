@@ -19,6 +19,7 @@ public:
     void kill() override { WARNING("Cannot kill main thread"); }
 
     void entryPoint() override { WARNING("Cannot entryPoint() main thread"); }
+    void sendSignal(Signals) override { WARNING("Cannot sendSignal() to main thread"); }
 
 private:
     ThreadId threadId_;

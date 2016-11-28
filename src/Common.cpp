@@ -8,9 +8,9 @@
         return "\033[0;" + std::to_string(TerminalColor::DEFAULT) + 'm';
     }
 
-    const std::string& thisThreadName()
+    const std::string& debugthisThreadName_()
     {
-        return Thread::thisThread()->name();
+        return Thread::thisThreadName();
     }
 
     static constexpr TerminalColor::Color colors_[3] = { TerminalColor::RED, TerminalColor::GREEN, TerminalColor::BLUE };

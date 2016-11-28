@@ -14,6 +14,7 @@ namespace Thread {
 static inline std::unordered_map<ThreadId, std::shared_ptr<Threader>>& activeThreads_();
 static inline std::mutex& threadManagerMux_();
 static inline void setSelfThread_(std::shared_ptr<Threader>);
+static inline void setSelfThreadName_(const std::string& name);
 static inline std::condition_variable& threadCountChangeCV_();
 static inline std::unordered_set<std::shared_ptr<Threader>>& staleThreads_();
 
@@ -23,7 +24,9 @@ void entryPoint(std::mutex& mux, std::condition_variable& cv, std::shared_ptr<T>
     std::shared_ptr<T> threadObj;
     {
         REGISTER_THREAD_COLOR();
+        setSelfThreadName_(name);
         std::lock_guard<std::mutex> lock(mux);
+
         threadObj.reset(new T(std::move(thread), name));
         setSelfThread_(threadObj);
 
@@ -69,6 +72,7 @@ struct ThreadManager {
 public:
     static ThreadId thisThreadId();
     static std::shared_ptr<Threader> thisThread();
+    static const std::string& thisThreadName();
 
     static void setMainThread(std::shared_ptr<Threader> thread);
 
@@ -81,6 +85,7 @@ private:
     friend void setSelfThread_(std::shared_ptr<Threader>);
     friend std::condition_variable& threadCountChangeCV_();
     friend std::unordered_set<std::shared_ptr<Threader>>& staleThreads_();
+    friend void setSelfThreadName_(const std::string& name);
 
     static std::unordered_map<ThreadId, std::shared_ptr<Threader>>& activeThreads_();
     static std::mutex& threadManagerMux_();
@@ -91,6 +96,7 @@ private:
     static std::unordered_set<std::shared_ptr<Threader>>& staleThreads_();
 
     static void setSelfThread_(std::shared_ptr<Threader>);
+    static void setSelfThreadName_(const std::string& name);
 };
 
 static inline std::unordered_map<ThreadId, std::shared_ptr<Threader>>& activeThreads_()
@@ -111,6 +117,11 @@ static inline std::condition_variable& threadCountChangeCV_()
 static inline void setSelfThread_(std::shared_ptr<Threader> thread)
 {
     return ThreadManager::setSelfThread_(thread);
+}
+
+static inline void setSelfThreadName_(const std::string& name)
+{
+    ThreadManager::setSelfThreadName_(name);
 }
 
 static inline std::unordered_set<std::shared_ptr<Threader>>& staleThreads_()

@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <thread>
-#include "Thread/FileDescriptorQueueThread.h"
+#include "Thread/SocketPollThread.h"
 #include "Thread/Threader.h"
 #include "Thread/ThreadManager.h"
 #include "Thread/MainThread.h"
@@ -26,10 +26,10 @@ int main(int argc, char* argv[])
     mainThread = std::make_shared<Thread::MainThread>();
     Thread::ThreadManager::setMainThread(mainThread);
     {
-        std::shared_ptr<Thread::FileDescriptorQueueThread> uiThread =
-                Thread::createThread<Thread::FileDescriptorQueueThread>("UI");
-        std::shared_ptr<Thread::FileDescriptorQueueThread> ioThread =
-                Thread::createThread<Thread::FileDescriptorQueueThread>("IO");
+        std::shared_ptr<Thread::SocketPollThread> uiThread =
+                Thread::createThread<Thread::SocketPollThread>("UI");
+        std::shared_ptr<Thread::SocketPollThread> ioThread =
+                Thread::createThread<Thread::SocketPollThread>("IO");
 
         signal(SIGINT, signalHandler);
         if (argc < 2 || strlen(argv[1]) < 1) {

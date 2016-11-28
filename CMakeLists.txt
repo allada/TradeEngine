@@ -9,14 +9,14 @@ include_directories("${BASEPATH}")
 
 set(
     HEADERS
-        src/Thread/FileDescriptorQueueThread.h
+        src/Thread/SocketPollThread.h
+        src/Thread/SocketTasker.h
         src/Thread/Thread.h
         src/Thread/Threader.h
+        src/Thread/Tasker.h
         src/Thread/MainThread.h
-        src/Thread/ThreadEventer.h
-        src/Thread/CrossThreadEventer.h
         src/Thread/ThreadManager.h
-        src/Thread/ThreadQueue.h
+        src/Thread/TaskQueue.h
         src/Common.h
 )
 
@@ -25,8 +25,7 @@ set(
         src/Common.cpp
         src/Thread/Threader.cpp
         src/Thread/ThreadManager.cpp
-        src/Thread/CrossThreadEventer.cpp
-        src/Thread/FileDescriptorQueueThread.cpp
+        src/Thread/SocketPollThread.cpp
         src/main.cpp
 )
 

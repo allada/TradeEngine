@@ -12,6 +12,7 @@ public:
     Thread(std::unique_ptr<std::thread> thread, const std::string& name)
         : thread_(std::move(thread))
         , name_(name) { }
+
     ~Thread()
     {
         DEBUG("%s Thread Destructed", name_.c_str());
