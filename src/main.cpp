@@ -4,6 +4,7 @@
 #include <string.h>
 #include <thread>
 #include "Thread/SocketPollThread.h"
+#include "Thread/TaskQueueThread.h"
 #include "Thread/Threader.h"
 #include "Thread/ThreadManager.h"
 #include "Thread/MainThread.h"
@@ -26,8 +27,8 @@ int main(int argc, char* argv[])
     mainThread = std::make_shared<Thread::MainThread>();
     Thread::ThreadManager::setMainThread(mainThread);
     {
-        std::shared_ptr<Thread::SocketPollThread> uiThread =
-                Thread::createThread<Thread::SocketPollThread>("UI");
+        std::shared_ptr<Thread::TaskQueueThread> uiThread =
+                Thread::createThread<Thread::TaskQueueThread>("UI");
         std::shared_ptr<Thread::SocketPollThread> ioThread =
                 Thread::createThread<Thread::SocketPollThread>("IO");
 

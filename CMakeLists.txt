@@ -17,6 +17,7 @@ set(
         src/Thread/MainThread.h
         src/Thread/ThreadManager.h
         src/Thread/TaskQueue.h
+        src/Thread/TaskQueueThread.h
         src/Common.h
 )
 
@@ -26,6 +27,7 @@ set(
         src/Thread/Threader.cpp
         src/Thread/ThreadManager.cpp
         src/Thread/SocketPollThread.cpp
+        src/Thread/TaskQueueThread.cpp
         src/main.cpp
 )
 

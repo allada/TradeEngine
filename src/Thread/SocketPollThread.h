@@ -9,7 +9,7 @@
 
 namespace Thread {
 
-static const uint64_t incrementer_ = 1;
+static constexpr uint64_t incrementer_ = 1;
 
 class SocketPollThread : public Thread<SocketPollThread> {
 public:
@@ -20,9 +20,9 @@ public:
             auto count = queue_.countAsReader();
             for (auto i = count; i > 0; --i) {
                 const Signals signal = queue_.pop();
-                DEBUG("Got %d signal", signal);
                 switch (signal) {
                     case Signals::Kill:
+                        DEBUG("Got Kill signal");
                         thisThread()->kill();
                         break;
                 }

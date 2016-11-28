@@ -90,6 +90,5 @@ void SocketPollThread::handleEvent_(epoll_event event)
 
 void SocketPollThread::sendSignal(Signals signal)
 {
-    DEBUG("Sending %d signal", signal);
     cross_thread_notifier_(signal);
 }

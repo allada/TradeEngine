@@ -6,6 +6,7 @@
 
 namespace Thread {
 
+// TODO check to see if std::move_if_noexcept is slower than making a new class to handle unique_ptr.
 template <class T>
 class TaskQueue {
 private:
@@ -45,15 +46,15 @@ public:
             std::this_thread::yield();
         }
 
-        data_[++write_index_] = item;
+        data_[write_index_++] = std::move_if_noexcept(item);
     }
 
     T pop()
     {
         ASSERT_NE(read_index_, write_index_, "There does not appear to be anything in the queue to read.");
-        T item = data_[read_index_];
+        T item = std::move(data_[read_index_]);
         read_index_ = (read_index_ + 1) % MAX_SIZE;
-        return item;
+        return std::move_if_noexcept(item);
     }
 
 private:
