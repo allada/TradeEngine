@@ -19,6 +19,9 @@ set(
         src/Thread/TaskQueue.h
         src/Thread/TaskQueueThread.h
         src/Common.h
+
+        src/Net/UDPSocket.h
+        src/Net/APIDataPackage.h
 )
 
 set(
