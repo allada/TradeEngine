@@ -62,7 +62,7 @@ static std::shared_ptr<T> createThread(const std::string& name)
     }
     std::unique_lock<std::mutex> lock(mux);
     // Wait for the thread to construct the threadObj (it may be null here, this waits for it to be set)
-    cv.wait(lock);
+    cv.wait(lock, [&threadObj]() { return threadObj != nullptr; });
     DEBUG("Got Thread Object");
     return threadObj;
 }

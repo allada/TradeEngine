@@ -55,7 +55,7 @@ using Closure = std::function<void()>;
     #define REGISTER_THREAD_COLOR() \
         TerminalColor::registerThread();
 
-    #define TEST(...) WARNING("TEST: %s in %s:%d", format(##__VA_ARGS__).c_str(), __FILE__, __LINE__)
+    #define TEST(...) WARNING("TEST: %s in %s:%d", format(__VA_ARGS__).c_str(), __FILE__, __LINE__)
 
     #define DEBUG(msg, ...) \
         fprintf(stdout, (TerminalColor::colorizeTerminal("Thread %s: ") + msg + "\n").c_str(), debugthisThreadName_().c_str(), ##__VA_ARGS__);
