@@ -49,7 +49,7 @@ public:
                     // TODO Send to IO thread?
 
                 }
-                ASSERT(package->done() || consumedLength == len, "API Data Package has not consumed all the data and is not done")
+                EXPECT_TRUE(package->done() || consumedLength == len)
 
 
             }
