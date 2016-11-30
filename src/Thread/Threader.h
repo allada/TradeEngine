@@ -3,6 +3,7 @@
 
 #include <thread>
 #include <string>
+#include <memory>
 #include "../Common.h"
 
 namespace Thread {
@@ -13,9 +14,8 @@ enum class Signals {
 
 typedef std::thread::id ThreadId;
 
-class Threader {
+class Threader : public std::enable_shared_from_this<Threader> {
 public:
-
     virtual const std::string& name() const = 0;
     virtual void join() = 0;
     virtual ThreadId id() const = 0;

@@ -18,7 +18,7 @@ SocketPollThread::SocketPollThread(std::unique_ptr<std::thread> thread, const st
 
 void SocketPollThread::addSocketTasker(std::unique_ptr<SocketTasker> socketTasker)
 {
-    ASSERT_NE(epollfd_, -1, "epoll_create1() must be valid");
+    EXPECT_NE(epollfd_, -1);
 
     struct epoll_event ev;
     ev.events = EPOLLET | EPOLLIN;
@@ -26,7 +26,7 @@ void SocketPollThread::addSocketTasker(std::unique_ptr<SocketTasker> socketTaske
     if (epoll_ctl(epollfd_, EPOLL_CTL_ADD, ev.data.fd, &ev) == -1) {
         WARNING("Error epoll_ctl()");
     }
-    file_descriptor_tasker_map_.emplace(ev.data.fd, std::move(socketTasker));
+    file_descriptor_tasker_map_.emplace(static_cast<FileDescriptor>(ev.data.fd), std::move(socketTasker));
 }
 
 void SocketPollThread::kill()
@@ -74,7 +74,7 @@ void SocketPollThread::entryPoint()
 
 void SocketPollThread::handleEvent_(epoll_event event)
 {
-    ASSERT_EQ((event.events & EPOLLIN), EPOLLIN, "Socket should be EPOLLIN.");
+    EXPECT_EQ((event.events & EPOLLIN), EPOLLIN);
 
     FileDescriptor fd = static_cast<FileDescriptor>(event.data.fd);
     if (event.events & EPOLLERR) {

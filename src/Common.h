@@ -24,13 +24,20 @@ inline std::unique_ptr<T> WrapUnique(T* ptr) {
 // Syntactic sugar to make Callback<void()> easier to declare since it
 // will be used in a lot of APIs with delayed execution.
 using Closure = std::function<void()>;
-
-#if !IS_DEBUG
-    #define DEBUG(...)
-    #define WARNING(...)
-    #define ASSERT(...)
-    #define ASSERT_EQ(...)
-    #define ASSERT_NE(...)
+#if !IS_DEBUG || defined(IS_TEST)
+    #define REGISTER_THREAD_COLOR()
+    #ifndef DEBUG
+        #define DEBUG(...)
+    #endif
+    #ifndef WARNING
+        #define WARNING(...)
+    #endif
+    #ifndef EXPECT_EQ
+        #define EXPECT_EQ(...)
+    #endif
+    #ifndef EXPECT_NE
+        #define EXPECT_NE(...)
+    #endif
 #else
 
     #include <functional>
@@ -55,18 +62,31 @@ using Closure = std::function<void()>;
     #define REGISTER_THREAD_COLOR() \
         TerminalColor::registerThread();
 
-    #define TEST(...) WARNING("TEST: %s in %s:%d", format(__VA_ARGS__).c_str(), __FILE__, __LINE__)
+    #ifndef DBG
+        #define DBG(...) WARNING("DBG: %s in %s:%d", format(__VA_ARGS__).c_str(), __FILE__, __LINE__)
+    #endif
 
-    #define DEBUG(msg, ...) \
-        fprintf(stdout, (TerminalColor::colorizeTerminal("Thread %s: ") + msg + "\n").c_str(), debugthisThreadName_().c_str(), ##__VA_ARGS__);
+    #ifndef DEBUG
+        #define DEBUG(msg, ...) \
+            fprintf(stdout, (TerminalColor::colorizeTerminal("Thread %s: ") + msg + "\n").c_str(), debugthisThreadName_().c_str(), ##__VA_ARGS__);
+    #endif
 
-    #define WARNING(msg, ...) \
-        fprintf(stdout, (TerminalColor::colorizeTerminal("Thread %s: ") + msg + "\n").c_str(), debugthisThreadName_().c_str(), ##__VA_ARGS__);
-
-    #define ASSERT(condition, msg, ...) if (!condition) WARNING("ASSERT FAIL: \"%s\" in %s:%d", format(msg, ##__VA_ARGS__).c_str(), __FILE__, __LINE__)
-    #define ASSERT_EQ(v1, v2, msg, ...) if (v1 != v2) WARNING("ASSERT FAIL %d == %d: \"%s\" in %s:%d", v1, v2, format(msg, ##__VA_ARGS__).c_str(), __FILE__, __LINE__)
-    #define ASSERT_NE(v1, v2, msg, ...) if (v1 == v2) WARNING("ASSERT FAIL %d != %d: \"%s\" in %s:%d", v1, v2, format(msg, ##__VA_ARGS__).c_str(), __FILE__, __LINE__)
-
+    #ifndef WARNING
+        #define WARNING(msg, ...) \
+            fprintf(stdout, (TerminalColor::colorizeTerminal("Thread %s: ") + msg + "\n").c_str(), debugthisThreadName_().c_str(), ##__VA_ARGS__);
+    #endif
+    #ifndef EXPECT_EQ
+        #define EXPECT_EQ(v1, v2) if (v1 != v2) WARNING("EXPECT FAIL %d == %d in %s:%d", v1, v2, __FILE__, __LINE__)
+    #endif
+    #ifndef EXPECT_NE
+        #define EXPECT_NE(v1, v2) if (v1 == v2) WARNING("EXPECT FAIL %d != %d in %s:%d", v1, v2, __FILE__, __LINE__)
+    #endif
+    #ifndef EXPECT_TRUE
+        #define EXPECT_TRUE(v) if (v) WARNING("EXPECT FAIL in %s:%d", __FILE__, __LINE__)
+    #endif
+    #ifndef EXPECT_FALSE
+        #define EXPECT_FALSE(v) if (!v) WARNING("EXPECT FAIL in %s:%d", __FILE__, __LINE__)
+    #endif
     #include <string>
     #include <cstdarg>
     inline const std::string format() {
@@ -175,5 +195,7 @@ using Closure = std::function<void()>;
         free(symbollist);
     }
 #endif
+
+#define EXPECT_MAIN_THREAD() EXPECT_EQ(ThreadManager::mainThreadId(), ThreadManager::thisThreadId())
 
 #endif /* Common_h */

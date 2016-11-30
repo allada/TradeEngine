@@ -17,7 +17,7 @@ std::string coin_name;
 
 void signalHandler(int signal)
 {
-    ASSERT_EQ(Thread::thisThreadId(), mainThread->id(), "signalHandler must be triggerd from mainThread only");
+    EXPECT_EQ(Thread::thisThreadId(), mainThread->id());
     DEBUG("Got termination request");
     Thread::ThreadManager::killAll();
 }
