@@ -1,6 +1,5 @@
 #include "TaskQueueThread.h"
 #include <chrono>
-//#include "../Common.h"
 
 using namespace Thread;
 
@@ -26,7 +25,7 @@ void TaskQueueThread::entryPoint()
     std::unique_lock<std::mutex> lock(notifier_mux_);
     while (running_) {
         // Wake every 50 miliseconds and try to ensure we did not leave any stragglers.
-        //notifier_cv_.wait_for(notifier_mux_, std::chrono::milliseconds(50));
+        notifier_cv_.wait_for(lock, std::chrono::milliseconds(50));
         auto len = taskQueue_.countAsReader();
         for (auto i = len; i > 0 && running_; --i) {
             std::unique_ptr<Tasker> task = taskQueue_.pop();
