@@ -30,6 +30,11 @@ const std::string& ThreadManager::thisThreadName()
     return selfThreadName;
 }
 
+ThreadId ThreadManager::mainThreadId()
+{
+    return main_thread_->id();
+}
+
 void ThreadManager::setSelfThread_(std::shared_ptr<Threader> thread)
 {
     selfThread = thread;
@@ -77,19 +82,26 @@ void ThreadManager::killAll()
 
 void ThreadManager::joinAll()
 {
+    EXPECT_MAIN_THREAD();
     do {
         std::unique_lock<std::mutex> threadManagerLock(threadManagerMux_());
         threadCountChangeCV_().wait(threadManagerLock);
         while (staleThreads_().size()) {
             auto thread = *staleThreads_().begin();
+            threadManagerLock.unlock();
             thread->join();
-            staleThreads_().erase(thread);
+            threadManagerLock.lock();
         }
         threadManagerLock.unlock();
     } while (ThreadManager::activeThreads_().size() > 1);
     DEBUG("All Threads Joined");
 }
 
+void ThreadManager::untrackThread(std::shared_ptr<Threader> thread)
+{
+    std::lock_guard<std::mutex> lock(threadManagerMux_());
+    staleThreads_().erase(thread);
+}
 
 std::unordered_map<ThreadId, std::shared_ptr<Threader>>& ThreadManager::activeThreads_()
 {

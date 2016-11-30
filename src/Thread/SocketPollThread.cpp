@@ -18,7 +18,7 @@ SocketPollThread::SocketPollThread(std::unique_ptr<std::thread> thread, const st
 
 void SocketPollThread::addSocketTasker(std::unique_ptr<SocketTasker> socketTasker)
 {
-    ASSERT_NE(epollfd_, -1, "epoll_create1() must be valid");
+    EXPECT_NE(epollfd_, -1);
 
     struct epoll_event ev;
     ev.events = EPOLLET | EPOLLIN;
@@ -74,7 +74,7 @@ void SocketPollThread::entryPoint()
 
 void SocketPollThread::handleEvent_(epoll_event event)
 {
-    ASSERT_EQ((event.events & EPOLLIN), EPOLLIN, "Socket should be EPOLLIN.");
+    EXPECT_EQ((event.events & EPOLLIN), EPOLLIN);
 
     FileDescriptor fd = static_cast<FileDescriptor>(event.data.fd);
     if (event.events & EPOLLERR) {

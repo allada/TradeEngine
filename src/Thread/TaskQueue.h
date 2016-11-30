@@ -51,7 +51,7 @@ public:
 
     T pop()
     {
-        ASSERT_NE(read_index_, write_index_, "There does not appear to be anything in the queue to read.");
+        EXPECT_NE(read_index_, write_index_); // There does not appear to be anything in the queue to read.
         T item = std::move(data_[read_index_]);
         read_index_ = (read_index_ + 1) % MAX_SIZE;
         return std::move_if_noexcept(item);
