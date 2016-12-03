@@ -1,5 +1,5 @@
-#ifndef UDPSocket_h
-#define UDPSocket_h
+#ifndef UDPSocketRecvTask_h
+#define UDPSocketRecvTask_h
 
 #include "../Thread/SocketTasker.h"
 #include <sys/socket.h>
@@ -15,9 +15,9 @@
 
 namespace Net {
 
-class UDPSocket : public Thread::SocketTasker {
+class UDPSocketRecvTask : public Thread::SocketTasker {
 public:
-    UDPSocket()
+    UDPSocketRecvTask()
         : Thread::SocketTasker(static_cast<FileDescriptor>(socket(AF_INET, SOCK_DGRAM, 0)))
     {
         struct sockaddr_in servAddr;
@@ -74,4 +74,4 @@ private:
 
 } /* Net */
 
-#endif /* UDPSocket_h */
+#endif /* UDPSocketRecvTask_h */

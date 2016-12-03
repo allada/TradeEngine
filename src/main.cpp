@@ -9,7 +9,7 @@
 #include "Thread/ThreadManager.h"
 #include "Thread/MainThread.h"
 
-#include "Net/UDPSocket.h"
+#include "Net/UDPSocketRecvTask.h"
 
 #include <chrono>
 
@@ -34,7 +34,7 @@ int main(int argc, char* argv[])
         std::shared_ptr<Thread::SocketPollThread> ioThread =
                 Thread::createThread<Thread::SocketPollThread>("IO");
 
-        ioThread->addSocketTasker(WrapUnique(new Net::UDPSocket));
+        ioThread->addSocketTasker(WrapUnique(new Net::UDPSocketRecvTask));
 
         signal(SIGINT, signalHandler);
         if (argc < 2 || strlen(argv[1]) < 1) {

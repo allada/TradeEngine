@@ -23,7 +23,7 @@ set(
         src/Thread/TaskQueueThread.h
         src/Common.h
 
-        src/Net/UDPSocket.h
+        src/Net/UDPSocketRecvTask.h
         src/Net/APIDataPackage.h
 )
 
