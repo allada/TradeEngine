@@ -24,7 +24,6 @@ public:
 
     void error() {
         // TODO Finish.
-        TEST();
     }
 
     virtual void run() = 0;

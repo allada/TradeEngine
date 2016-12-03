@@ -20,8 +20,9 @@ public:
 
     const std::string& name() const override { return name_; };
     void join() override {
-        ASSERT(thread_->joinable(), "Thread %s does not appear to be joinable", name_.c_str());
-        thread_->join();
+        if (thread_->joinable())
+            thread_->join();
+        ThreadManager::untrackThread(shared_from_this());
     }
 
     ThreadId id() const override { return thread_->get_id(); }
