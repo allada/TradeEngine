@@ -1,5 +1,5 @@
-#ifndef UDPSocket_h
-#define UDPSocket_h
+#ifndef UDPSocketRecvTask_h
+#define UDPSocketRecvTask_h
 
 #include "../Thread/SocketTasker.h"
 #include <sys/socket.h>
@@ -15,9 +15,9 @@
 
 namespace Net {
 
-class UDPSocket : public Thread::SocketTasker {
+class UDPSocketRecvTask : public Thread::SocketTasker {
 public:
-    UDPSocket()
+    UDPSocketRecvTask()
         : Thread::SocketTasker(static_cast<FileDescriptor>(socket(AF_INET, SOCK_DGRAM, 0)))
     {
         struct sockaddr_in servAddr;
@@ -37,7 +37,7 @@ public:
         unsigned char buff[MAX_BUFF_SIZE];
         struct sockaddr_in remoteAddr;
         socklen_t addrLen = sizeof(remoteAddr);
-        bool firstLoop = true;
+        //bool firstLoop = true;
         RERUN_RECV: {
             size_t len = recvfrom(socket_, &buff, MAX_BUFF_SIZE, MSG_DONTWAIT, (struct sockaddr *) &remoteAddr, &addrLen);
             size_t addr_hash = hashAddr(remoteAddr);
@@ -49,14 +49,12 @@ public:
                     // TODO Send to IO thread?
 
                 }
-                EXPECT_TRUE(package->done() || consumedLength == len)
-
-
+                EXPECT_TRUE(package->done() || consumedLength == len); // API Data Package has not consumed all the data and is not done
             }
             DEBUG("Socket %d got %d bytes of data", socket_, len);
             if (errno == EAGAIN) {
                 DEBUG("Socket %d got EAGAIN");
-                firstLoop = false;
+                //firstLoop = false;
                 goto RERUN_RECV;
             }
         }
@@ -74,4 +72,4 @@ private:
 
 } /* Net */
 
-#endif /* UDPSocket_h */
+#endif /* UDPSocketRecvTask_h */

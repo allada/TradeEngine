@@ -1,5 +1,5 @@
 #!/bin/sh
-version="1.1006";
+version="1.1008";
 
 if [[ -z $(docker images -a | grep "trader_base_$version ") ]] ; then
     docker images -a | grep trader_ | awk '{print $1}' | xargs docker rmi
@@ -13,4 +13,8 @@ if [[ -z $(docker images -a | grep "trader_base_$version ") ]] ; then
     docker rm trader;
 fi
 
-docker run -v `pwd`/:/trader -it --rm trader
+if [ "$1" = "test" ] ; then
+    docker run -v `pwd`/:/trader -it -e "RUN_TESTS=1" --rm trader
+else
+    docker run -v `pwd`/:/trader -it -e "RUN_TESTS=0" --rm trader
+fi

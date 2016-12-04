@@ -9,7 +9,7 @@
 #include "Thread/ThreadManager.h"
 #include "Thread/MainThread.h"
 
-#include "Net/UDPSocket.h"
+#include "Net/UDPSocketRecvTask.h"
 
 #include "Net/TESTUDP.h"
 
@@ -22,7 +22,7 @@ std::string coin_name;
 
 void signalHandler(int signal)
 {
-    ASSERT_EQ(Thread::thisThreadId(), mainThread->id(), "signalHandler must be triggerd from mainThread only");
+    EXPECT_EQ(Thread::thisThreadId(), mainThread->id());
     DEBUG("Got termination request");
     Thread::ThreadManager::killAll();
 }
@@ -37,7 +37,7 @@ int main(int argc, char* argv[])
         std::shared_ptr<Thread::SocketPollThread> ioThread =
                 Thread::createThread<Thread::SocketPollThread>("IO");
 
-        ioThread->addSocketTasker(WrapUnique(new Net::UDPSocket));
+        ioThread->addSocketTasker(WrapUnique(new Net::UDPSocketRecvTask));
 
         signal(SIGINT, signalHandler);
         if (argc < 2 || strlen(argv[1]) < 1) {
