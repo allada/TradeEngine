@@ -1,18 +1,8 @@
 #include "gtest/gtest.h"
 
-#include <csignal>
-#include <stdlib.h>
-#include <string.h>
-#include <thread>
-#include <vector>
-
 #include <arpa/inet.h>
-
 #include "Net/APIDataPackage.h"
-#include "Net/udpSocketRecvTask.h"
-
-#include <chrono>
-#include <unistd.h>
+#include "Net/UDPSocketRecvTask.h"
 #include <errno.h>
 
 #define UDP_TEST_IP "127.0.0.5"

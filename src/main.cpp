@@ -1,18 +1,11 @@
-#include <chrono>
 #include <csignal>
-#include <stdlib.h>
 #include <string.h>
-#include <thread>
 #include "Thread/SocketPollThread.h"
 #include "Thread/TaskQueueThread.h"
-#include "Thread/Threader.h"
 #include "Thread/ThreadManager.h"
 #include "Thread/MainThread.h"
 
 #include "Net/UDPSocketRecvTask.h"
-
-#include <chrono>
-#include <unistd.h>
 
 std::shared_ptr<Thread::MainThread> mainThread;
 

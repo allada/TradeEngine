@@ -34,9 +34,6 @@ using Closure = std::function<void()>;
     #define DEBUG(msg, ...) \
         fprintf(OUTPUT_STREAM, (TerminalColor::colorizeTerminal("Thread %s: ") + msg + "\n").c_str(), debugthisThreadName_().c_str(), ##__VA_ARGS__);
 
-
-    #include <string>
-    #include <cstdarg>
     inline const std::string format() {
         return "";
     }
@@ -150,7 +147,6 @@ using Closure = std::function<void()>;
 #endif
 
 #ifdef TERMINAL_COLOR
-    #include <thread>
     const std::string& debugthisThreadName_();
     class TerminalColor {
     public:
@@ -202,9 +198,6 @@ using Closure = std::function<void()>;
         #define EXPECT_FALSE(...)
     #endif
 #else
-    #include <functional>
-    #include <string>
-
     #ifndef WARNING
         #define WARNING(msg, ...) \
             fprintf(OUTPUT_STREAM, msg, ##__VA_ARGS__);

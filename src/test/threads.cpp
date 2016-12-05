@@ -1,17 +1,8 @@
 #include "gtest/gtest.h"
 
-#include <csignal>
-#include <stdlib.h>
-#include <string.h>
-#include <thread>
 #include "Thread/SocketPollThread.h"
 #include "Thread/TaskQueueThread.h"
-#include "Thread/Threader.h"
 #include "Thread/ThreadManager.h"
-#include "Thread/MainThread.h"
-
-#include <chrono>
-#include <unistd.h>
 
 namespace {
 using namespace Thread;
