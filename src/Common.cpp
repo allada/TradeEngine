@@ -1,8 +1,9 @@
 #include "Common.h"
 
-#include "Thread/Threader.h"
+#ifdef TERMINAL_COLOR
+    #include "Thread/Threader.h"
+    #include <unordered_map>
 
-#if IS_DEBUG && !defined(IS_TEST)
     static inline const std::string resetColor()
     {
         return "\033[0;" + std::to_string(TerminalColor::DEFAULT) + 'm';

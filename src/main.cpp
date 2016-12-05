@@ -11,8 +11,6 @@
 
 #include "Net/UDPSocketRecvTask.h"
 
-#include "Net/TESTUDP.h"
-
 #include <chrono>
 #include <unistd.h>
 
@@ -22,7 +20,7 @@ std::string coin_name;
 
 void signalHandler(int signal)
 {
-    EXPECT_EQ(Thread::thisThreadId(), mainThread->id());
+    EXPECT_MAIN_THREAD();
     DEBUG("Got termination request");
     Thread::ThreadManager::killAll();
 }

@@ -19,7 +19,6 @@ using namespace Thread;
 class ThreadTest : public ::testing::Test {
 };
 
-
 TEST(ThreadTest, TaskQueueThreadKills) {
     {
         std::shared_ptr<TaskQueueThread> thread = createThread<TaskQueueThread>("Thread");
@@ -39,13 +38,3 @@ TEST(ThreadTest, SocketPoolThreadKills) {
 }
 
 } // namespace
-
-int main(int argc, char **argv) {
-    ::testing::InitGoogleTest(&argc, argv);
-
-    std::shared_ptr<MainThread> mainThread;
-    mainThread = std::make_shared<MainThread>();
-    ThreadManager::setMainThread(mainThread);
-
-    return RUN_ALL_TESTS();
-}

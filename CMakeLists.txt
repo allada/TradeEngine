@@ -4,9 +4,17 @@ set(CMAKE_CXX_COMPILER                "/usr/bin/clang++-3.8")
 
 project (TradeEngine)
 
+if("$ENV{DEBUG_OUTPUT}" STREQUAL "1")
+    message(STATUS "Running with debug output on")
+    set(DEBUG_OUTPUT "-DDEBUG_OUTPUT")
+else()
+    message(STATUS "Running with debug output off")
+    set(DEBUG_OUTPUT "")
+endif()
+
 find_package(Threads REQUIRED)
 
-set(CMAKE_CXX_FLAGS                   "-g -O0 -Wall -std=c++11 -v -lSegFault")
+set(CMAKE_CXX_FLAGS                   "-g -O0 -Wall -std=c++11 -v -lSegFault ${DEBUG_OUTPUT}")
 set(BASEPATH                          "${CMAKE_SOURCE_DIR}/src")
 include_directories(${BASEPATH})
 
@@ -34,10 +42,12 @@ set(
         src/Thread/ThreadManager.cpp
         src/Thread/SocketPollThread.cpp
         src/Thread/TaskQueueThread.cpp
+        src/Net/UDPSocketRecvTask.cpp
 )
 
 add_executable(trader ${HEADERS} ${SOURCES} src/main.cpp)
 target_link_libraries(trader pthread)
+
 project (TradeEngine_test)
 add_subdirectory(${CMAKE_SOURCE_DIR}/gtest)
 
