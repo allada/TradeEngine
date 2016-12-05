@@ -1,4 +1,4 @@
-FROM trader_base_1.1006
+FROM trader_base_1.1008
 
 WORKDIR /trader
 
@@ -7,4 +7,4 @@ RUN rm /trader/CMakeCache.txt &> /dev/null
 
 VOLUME ["/trader"]
 
-ENTRYPOINT bash -c "cmake .; make && echo && catchsegv ./trader BTC"
+ENTRYPOINT bash -c "sh ./dockerRunner.sh"

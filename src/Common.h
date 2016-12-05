@@ -25,50 +25,15 @@ inline std::unique_ptr<T> WrapUnique(T* ptr) {
 // will be used in a lot of APIs with delayed execution.
 using Closure = std::function<void()>;
 
-#if !IS_DEBUG
-    #define DEBUG(...)
-    #define WARNING(...)
-    #define ASSERT(...)
-    #define ASSERT_EQ(...)
-    #define ASSERT_NE(...)
-#else
+#if defined(DEBUG_OUTPUT)
+    #define TERMINAL_COLOR
+#endif
 
-    #include <functional>
-    #include <string>
-    #include <thread>
-    #include <unordered_map>
-
-    const std::string& debugthisThreadName_();
-
-    class TerminalColor {
-    public:
-        enum Color {
-            RED      = 31,
-            GREEN    = 32,
-            BLUE     = 34,
-            DEFAULT  = 39
-        };
-        static std::string colorizeTerminal(const std::string& data);
-        static void registerThread();
-    };
-
-    #define REGISTER_THREAD_COLOR() \
-        TerminalColor::registerThread();
-
-    #define TEST(...) WARNING("TEST: %s in %s:%d", format(##__VA_ARGS__).c_str(), __FILE__, __LINE__)
-
+#ifdef DEBUG_OUTPUT
+    #define DBG(...) WARNING("DBG: %s in %s:%d", format(__VA_ARGS__).c_str(), __FILE__, __LINE__)
     #define DEBUG(msg, ...) \
-        fprintf(stdout, (TerminalColor::colorizeTerminal("Thread %s: ") + msg + "\n").c_str(), debugthisThreadName_().c_str(), ##__VA_ARGS__);
+        fprintf(OUTPUT_STREAM, (TerminalColor::colorizeTerminal("Thread %s: ") + msg + "\n").c_str(), debugthisThreadName_().c_str(), ##__VA_ARGS__);
 
-    #define WARNING(msg, ...) \
-        fprintf(stdout, (TerminalColor::colorizeTerminal("Thread %s: ") + msg + "\n").c_str(), debugthisThreadName_().c_str(), ##__VA_ARGS__);
-
-    #define ASSERT(condition, msg, ...) if (!condition) WARNING("ASSERT FAIL: \"%s\" in %s:%d", format(msg, ##__VA_ARGS__).c_str(), __FILE__, __LINE__)
-    #define ASSERT_EQ(v1, v2, msg, ...) if (v1 != v2) WARNING("ASSERT FAIL %d == %d: \"%s\" in %s:%d", v1, v2, format(msg, ##__VA_ARGS__).c_str(), __FILE__, __LINE__)
-    #define ASSERT_NE(v1, v2, msg, ...) if (v1 == v2) WARNING("ASSERT FAIL %d != %d: \"%s\" in %s:%d", v1, v2, format(msg, ##__VA_ARGS__).c_str(), __FILE__, __LINE__)
-
-    #include <string>
-    #include <cstdarg>
     inline const std::string format() {
         return "";
     }
@@ -174,6 +139,89 @@ using Closure = std::function<void()>;
         free(funcname);
         free(symbollist);
     }
+
+#else
+    #ifndef DEBUG
+        #define DEBUG(...)
+    #endif
 #endif
+
+#ifdef TERMINAL_COLOR
+    const std::string& debugthisThreadName_();
+    class TerminalColor {
+    public:
+        enum Color {
+            RED      = 31,
+            GREEN    = 32,
+            BLUE     = 34,
+            DEFAULT  = 39
+        };
+        static std::string colorizeTerminal(const std::string& data);
+        static void registerThread();
+    };
+
+    #define REGISTER_THREAD_COLOR() \
+        TerminalColor::registerThread();
+
+    #ifndef DEBUG
+        #define DEBUG(msg, ...) \
+            fprintf(OUTPUT_STREAM, (TerminalColor::colorizeTerminal("Thread %s: ") + msg + "\n").c_str(), debugthisThreadName_().c_str(), ##__VA_ARGS__);
+    #endif
+
+    #ifndef WARNING
+        #define WARNING(msg, ...) \
+            fprintf(OUTPUT_STREAM, (TerminalColor::colorizeTerminal("Thread %s: ") + msg + "\n").c_str(), debugthisThreadName_().c_str(), ##__VA_ARGS__);
+    #endif
+#else
+    #define REGISTER_THREAD_COLOR()
+#endif
+
+#define OUTPUT_STREAM stderr
+
+#if defined(IS_TEST)
+    #define VIRTUAL_FOR_TEST virtual
+#else
+    #define VIRTUAL_FOR_TEST
+#endif
+
+#if !IS_DEBUG || defined(IS_TEST)
+    #ifndef WARNING
+        #define WARNING(...)
+    #endif
+
+    #ifndef EXPECT_EQ
+        #define EXPECT_EQ(...)
+    #endif
+    #ifndef EXPECT_NE
+        #define EXPECT_NE(...)
+    #endif
+
+    #ifndef EXPECT_TRUE
+        #define EXPECT_TRUE(...)
+    #endif
+    #ifndef EXPECT_FALSE
+        #define EXPECT_FALSE(...)
+    #endif
+#else
+    #ifndef WARNING
+        #define WARNING(msg, ...) \
+            fprintf(OUTPUT_STREAM, msg, ##__VA_ARGS__);
+    #endif
+
+    #ifndef EXPECT_EQ
+        #define EXPECT_EQ(v1, v2) if (v1 != v2) WARNING("EXPECT FAIL %d == %d in %s:%d", v1, v2, __FILE__, __LINE__)
+    #endif
+    #ifndef EXPECT_NE
+        #define EXPECT_NE(v1, v2) if (v1 == v2) WARNING("EXPECT FAIL %d != %d in %s:%d", v1, v2, __FILE__, __LINE__)
+    #endif
+    #ifndef EXPECT_TRUE
+        #define EXPECT_TRUE(v) if (v) WARNING("EXPECT FAIL in %s:%d", __FILE__, __LINE__)
+    #endif
+    #ifndef EXPECT_FALSE
+        #define EXPECT_FALSE(v) if (!v) WARNING("EXPECT FAIL in %s:%d", __FILE__, __LINE__)
+    #endif
+#endif
+
+#define EXPECT_MAIN_THREAD() EXPECT_EQ(static_cast<int>(std::hash<std::thread::id>()(::Thread::ThreadManager::mainThreadId())), static_cast<int>(std::hash<std::thread::id>()(::Thread::ThreadManager::thisThreadId())))
 
 #endif /* Common_h */

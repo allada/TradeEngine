@@ -1,5 +1,5 @@
 #!/bin/sh
-version="1.1006";
+version="1.1008";
 
 if [[ -z $(docker images -a | grep "trader_base_$version ") ]] ; then
     docker images -a | grep trader_ | awk '{print $1}' | xargs docker rmi
@@ -13,4 +13,16 @@ if [[ -z $(docker images -a | grep "trader_base_$version ") ]] ; then
     docker rm trader;
 fi
 
-docker run -v `pwd`/:/trader -it --rm trader
+ENV_PARAMS=""
+
+for ARG in "$@"
+do
+    case "$ARG" in 
+        "debug")
+            ENV_PARAMS="$ENV_PARAMS -e 'DEBUG_OUTPUT=1'";;
+        "test")
+            ENV_PARAMS="$ENV_PARAMS -e 'RUN_TESTS=1'";;
+    esac
+done
+
+eval "docker run -v `pwd`/:/trader -it ${ENV_PARAMS} --rm trader"

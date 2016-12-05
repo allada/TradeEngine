@@ -62,7 +62,7 @@ static std::shared_ptr<T> createThread(const std::string& name)
     }
     std::unique_lock<std::mutex> lock(mux);
     // Wait for the thread to construct the threadObj (it may be null here, this waits for it to be set)
-    cv.wait(lock);
+    cv.wait(lock, [&threadObj]() { return threadObj != nullptr; });
     DEBUG("Got Thread Object");
     return threadObj;
 }
@@ -70,6 +70,7 @@ static std::shared_ptr<T> createThread(const std::string& name)
 struct ThreadManager {
     STATIC_ONLY(ThreadManager)
 public:
+    static ThreadId mainThreadId();
     static ThreadId thisThreadId();
     static std::shared_ptr<Threader> thisThread();
     static const std::string& thisThreadName();
@@ -78,6 +79,14 @@ public:
 
     static void joinAll();
     static void killAll();
+
+    static void untrackThread(std::shared_ptr<Threader>);
+
+    static int activeThreadsCount()
+    {
+        std::lock_guard<std::mutex> messanger_lock(threadManagerMux_());
+        return activeThreads_().size();
+    }
 
 private:
     friend std::unordered_map<ThreadId, std::shared_ptr<Threader>>& activeThreads_();

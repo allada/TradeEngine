@@ -3,3 +3,11 @@
 /cmake_install.cmake
 /Makefile
 /trader
+/Testing
+/gtest/CMakeFiles
+/gtest/src
+/gtest/cmake_install.cmake
+/gtest/Makefile
+/gtest/tmp
+/TradeEngine_test
+/CTestTestfile.cmake
