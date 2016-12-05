@@ -1,7 +1,6 @@
 #include "ThreadManager.h"
 #include "Threader.h"
 #include "../Common.h"
-#include <thread>
 
 using namespace Thread;
 

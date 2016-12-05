@@ -13,8 +13,16 @@ if [[ -z $(docker images -a | grep "trader_base_$version ") ]] ; then
     docker rm trader;
 fi
 
-if [ "$1" = "test" ] ; then
-    docker run -v `pwd`/:/trader -it -e "RUN_TESTS=1" --rm trader
-else
-    docker run -v `pwd`/:/trader -it -e "RUN_TESTS=0" --rm trader
-fi
+ENV_PARAMS=""
+
+for ARG in "$@"
+do
+    case "$ARG" in 
+        "debug")
+            ENV_PARAMS="$ENV_PARAMS -e 'DEBUG_OUTPUT=1'";;
+        "test")
+            ENV_PARAMS="$ENV_PARAMS -e 'RUN_TESTS=1'";;
+    esac
+done
+
+eval "docker run -v `pwd`/:/trader -it ${ENV_PARAMS} --rm trader"

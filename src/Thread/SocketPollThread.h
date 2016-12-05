@@ -6,6 +6,7 @@
 #include "SocketTasker.h"
 #include <sys/epoll.h>
 #include <unordered_map>
+#include <sys/eventfd.h>
 
 namespace Thread {
 
@@ -15,6 +16,9 @@ class SocketPollThread : public Thread<SocketPollThread> {
 public:
     class CrossThreadSignal : public SocketTasker {
     public:
+        CrossThreadSignal()
+            : SocketTasker(static_cast<FileDescriptor>(eventfd(0, EFD_SEMAPHORE))) { }
+
         void run() override
         {
             auto count = queue_.countAsReader();

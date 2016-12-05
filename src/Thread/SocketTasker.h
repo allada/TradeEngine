@@ -2,15 +2,14 @@
 #define SocketTasker_h
 
 #include "Tasker.h"
-#include <sys/eventfd.h>
 #include <unistd.h>
 
 namespace Thread {
 
 class SocketTasker : virtual public Tasker {
 public:
-    SocketTasker()
-        : socket_(static_cast<FileDescriptor>(eventfd(0, EFD_SEMAPHORE)))
+    SocketTasker(FileDescriptor socket)
+        : socket_(socket)
     {
         DEBUG("Socket %d created", socket_);
     }
