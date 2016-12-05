@@ -41,7 +41,7 @@ private:
 
 class UDPSocketRecvTaskMock : public UDPSocketRecvTask {
 public:
-    void dataReceived(std::unique_ptr<APIDataPackage> package) override
+    void packageReady(std::unique_ptr<APIDataPackage> package) override
     {
         package_ = std::move(package);
     }
@@ -60,7 +60,9 @@ TEST(UDPTest, Recv1Byte) {
     UDPSocketRecvTaskMock udpSocketRecvTaskMock;
     UDPStreamHelper udpStreamHelper(UDP_TEST_IP, SERV_PORT);
 
-    std::vector<unsigned char> dummyData1 = {'H', 'e', 'l', 'l', 'o', ' ', 'f', 'o', 'o', ' ', 'b', 'a', 'r'};
+    std::string dummyString = "Hello foo bar!\n";
+    std::vector<unsigned char> dummyData1(PACKAGE_SIZE);
+    std::copy(dummyString.begin(), dummyString.end(), std::back_inserter(dummyString));
 
     udpStreamHelper.send(dummyData1);
     udpSocketRecvTaskMock.run();

@@ -174,10 +174,15 @@ using Closure = std::function<void()>;
     #endif
 #else
     #define REGISTER_THREAD_COLOR()
-
 #endif
 
 #define OUTPUT_STREAM stderr
+
+#if defined(IS_TEST)
+    #define VIRTUAL_FOR_TEST virtual
+#else
+    #define VIRTUAL_FOR_TEST
+#endif
 
 #if !IS_DEBUG || defined(IS_TEST)
     #ifndef WARNING

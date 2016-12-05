@@ -16,7 +16,6 @@ UDPSocketRecvTask::UDPSocketRecvTask()
 
     bind(socket_, (struct sockaddr *) &servAddr, sizeof(servAddr));
     fcntl(socket_, F_SETFL, O_NONBLOCK);
-    //listen(socket_, 0);
 
     DEBUG("UDP Socket %d Sniffing", socket_);
 }
@@ -30,19 +29,22 @@ void UDPSocketRecvTask::run()
     size_t len = recvfrom(socket_, &buff, MAX_BUFF_SIZE, MSG_DONTWAIT, (struct sockaddr *) &remoteAddr, &addrLen);
     size_t addr_hash = hashAddr(remoteAddr);
 
-    std::unique_ptr<APIDataPackage> package;
-    if (partial_packages_.count(addr_hash)) {
-        package = std::move(partial_packages_[addr_hash]);
-    } else {
-        package = WrapUnique(new APIDataPackage);
-    }
-    size_t consumedLength = package->appendData(buff[0], len);
+    size_t consumedLength = 0;
+    while (consumedLength < len) {
+        std::unique_ptr<APIDataPackage> package;
+        if (partial_packages_.count(addr_hash)) {
+            package = std::move(partial_packages_[addr_hash]);
+        } else {
+            package = WrapUnique(new APIDataPackage);
+        }
+        consumedLength += package->appendData(buff[consumedLength], len);
 
-    EXPECT_TRUE(package->done() || consumedLength == len); // API Data Package has not consumed all the data and is not done
+        EXPECT_TRUE(package->isDone() || consumedLength == len); // API Data Package has not consumed all the data and is not done
 
-    if (package->done()) {
-        // TODO Send to IO thread?
-        this->dataReceived(std::move(package));
+        if (package->isDone()) {
+            // TODO Send to IO thread?
+            this->packageReady(std::move(package));
+        }
     }
     DEBUG("Socket %d got %d bytes of data", socket_, len);
     if (errno == EAGAIN || errno == EWOULDBLOCK) {
@@ -50,9 +52,9 @@ void UDPSocketRecvTask::run()
     }
 }
 
-void UDPSocketRecvTask::dataReceived(std::unique_ptr<APIDataPackage> package)
+void UDPSocketRecvTask::packageReady(std::unique_ptr<APIDataPackage> package)
 {
-    
+    std::unique_ptr<Tasker> task = package->makeTask();
 }
 
 size_t UDPSocketRecvTask::hashAddr(const sockaddr_in& addr)

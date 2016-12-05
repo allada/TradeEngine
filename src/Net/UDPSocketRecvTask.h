@@ -19,7 +19,7 @@ public:
 
     void run() override;
 
-    virtual void dataReceived(std::unique_ptr<APIDataPackage>);
+    VIRTUAL_FOR_TEST void packageReady(std::unique_ptr<APIDataPackage>);
 
 private:
     size_t hashAddr(const sockaddr_in&);
