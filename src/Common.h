@@ -185,12 +185,13 @@ using Closure = std::function<void()>;
     #define VIRTUAL_FOR_TEST
 #endif
 
-struct typer{
-    static const char* fmt(int) { return "%d"; }
-    static const char* fmt(long) { return "%ld"; }
-    static const char* fmt(uint8_t) { return "%d"; }
-    static const char* fmt(uint64_t) { return "%lld"; }
-};
+template<typename L> const char* fmtLookupTable() { return "%p"; };
+
+template<typename T>
+static const char* fmt(T)
+{
+    return fmtLookupTable<typename std::decay<T>::type>();
+}
 
 #if !IS_DEBUG || defined(IS_TEST)
     #ifndef WARNING
@@ -228,22 +229,21 @@ struct typer{
     }
 
     #ifndef EXPECT_GT
-        #define EXPECT_GT(v1, v2) if (v1 > v2) WARNING(CHAR_TO_STRING_("EXPECT FAIL ", typer::fmt(v1), " > ", typer::fmt(v2), " in %s:%d"), v1, v2, __FILE__, __LINE__)
+        #define EXPECT_GT(v1, v2) if (v1 > v2) { WARNING(CHAR_TO_STRING_("EXPECT FAIL ", ::fmt(v1), " > ", ::fmt(v2), " in %s:%d"), v1, v2, __FILE__, __LINE__); }
     #endif
     #ifndef EXPECT_EQ
-        #define EXPECT_EQ(v1, v2) if (v1 != v2) WARNING(CHAR_TO_STRING_("EXPECT FAIL ", typer::fmt(v1), " == ", typer::fmt(v2), " in %s:%d"), v1, v2, __FILE__, __LINE__)
+        #define EXPECT_EQ(v1, v2) if (v1 != v2) { WARNING(CHAR_TO_STRING_("EXPECT FAIL ", ::fmt(v1), " == ", ::fmt(v2), " in %s:%d"), v1, v2, __FILE__, __LINE__); }
     #endif
     #ifndef EXPECT_NE
-        #define EXPECT_NE(v1, v2) if (v1 == v2) WARNING(CHAR_TO_STRING_("EXPECT FAIL ", typer::fmt(v1), " != ", typer::fmt(v2), " in %s:%d"), v1, v2, __FILE__, __LINE__)
+        #define EXPECT_NE(v1, v2) if (v1 == v2) { WARNING(CHAR_TO_STRING_("EXPECT FAIL ", ::fmt(v1), " != ", ::fmt(v2), " in %s:%d"), v1, v2, __FILE__, __LINE__); }
     #endif
     #ifndef EXPECT_TRUE
-        #define EXPECT_TRUE(v) if (v) WARNING("EXPECT FAIL in %s:%d", __FILE__, __LINE__)
+        #define EXPECT_TRUE(v) if (v) { WARNING("EXPECT FAIL in %s:%d", __FILE__, __LINE__); }
     #endif
     #ifndef EXPECT_FALSE
-        #define EXPECT_FALSE(v) if (!v) WARNING("EXPECT FAIL in %s:%d", __FILE__, __LINE__)
+        #define EXPECT_FALSE(v) if (!v) { WARNING("EXPECT FAIL in %s:%d", __FILE__, __LINE__); }
     #endif
 #endif
 
 #define EXPECT_MAIN_THREAD() EXPECT_EQ(static_cast<int>(std::hash<std::thread::id>()(::Thread::ThreadManager::mainThreadId())), static_cast<int>(std::hash<std::thread::id>()(::Thread::ThreadManager::thisThreadId())))
-
 #endif /* Common_h */

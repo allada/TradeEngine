@@ -32,3 +32,16 @@
         registeredTerminalColors.emplace(std::this_thread::get_id(), colors_[counter_++ % sizeof(colors_)]);
     }
 #endif
+
+template<> const char* fmtLookupTable<int>()
+    { return "%d"; }
+template<> const char* fmtLookupTable<long>()
+    { return "%ld"; }
+template<> const char* fmtLookupTable<unsigned long>()
+    { return "%ld"; }
+template<> const char* fmtLookupTable<char>()
+    { return "%d"; }
+template<> const char* fmtLookupTable<unsigned long long>()
+    { return "%lld"; }
+template<> const char* fmtLookupTable<void*>()
+    { return "%p"; }

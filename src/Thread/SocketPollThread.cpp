@@ -74,7 +74,7 @@ void SocketPollThread::entryPoint()
 
 void SocketPollThread::handleEvent_(epoll_event event)
 {
-    EXPECT_EQ((event.events & EPOLLIN), EPOLLIN);
+    EXPECT_EQ(size_t(event.events & EPOLLIN), size_t(EPOLLIN));
 
     FileDescriptor fd = static_cast<FileDescriptor>(event.data.fd);
     if (event.events & EPOLLERR) {

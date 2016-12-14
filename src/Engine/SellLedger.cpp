@@ -35,10 +35,11 @@ std::unique_ptr<Order> SellLedger::tipOrder()
     } else if (orderQueue->size() <= 1) {
         EXPECT_GT(count_, 0);
         Word_t newTipIndex = index;
-        QueueOrders* newTipOrder = *reinterpret_cast<QueueOrders**>(JudyLNext(PJLArray, &newTipIndex, PJE0));
-        EXPECT_NE(newTipOrder, PJERR);
-        EXPECT_NE(newTipIndex, NULL);
-        tipPrice_ = newTipOrder->front()->price();
+        QueueOrders** newTipOrder = reinterpret_cast<QueueOrders**>(JudyLNext(PJLArray, &newTipIndex, PJE0));
+        EXPECT_NE(newTipOrder, nullptr);
+        EXPECT_NE(*newTipOrder, nullptr);
+        EXPECT_NE(*newTipOrder, PJERR);
+        tipPrice_ = (*newTipOrder)->front()->price();
     }
 
     Order* order = orderQueue->front();
