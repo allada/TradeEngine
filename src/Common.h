@@ -180,15 +180,26 @@ using Closure = std::function<void()>;
 
 #if defined(IS_TEST)
     #define VIRTUAL_FOR_TEST virtual
+    #include "gtest/gtest.h"
 #else
     #define VIRTUAL_FOR_TEST
 #endif
+
+struct typer{
+    static const char* fmt(int) { return "%d"; }
+    static const char* fmt(long) { return "%ld"; }
+    static const char* fmt(uint8_t) { return "%d"; }
+    static const char* fmt(uint64_t) { return "%lld"; }
+};
 
 #if !IS_DEBUG || defined(IS_TEST)
     #ifndef WARNING
         #define WARNING(...)
     #endif
 
+    #ifndef EXPECT_GT
+        #define EXPECT_GT(...)
+    #endif
     #ifndef EXPECT_EQ
         #define EXPECT_EQ(...)
     #endif
@@ -204,15 +215,26 @@ using Closure = std::function<void()>;
     #endif
 #else
     #ifndef WARNING
-        #define WARNING(msg, ...) \
-            fprintf(OUTPUT_STREAM, msg, ##__VA_ARGS__);
+        #define WARNING(...)
     #endif
 
+    inline std::string CHAR_TO_STRING_(const char* data) {
+        return std::string(data);
+    }
+
+    template<typename ...Ints>
+    inline std::string CHAR_TO_STRING_(const char* data, Ints*... args) {
+        return std::string(data) + CHAR_TO_STRING_(args...);
+    }
+
+    #ifndef EXPECT_GT
+        #define EXPECT_GT(v1, v2) if (v1 > v2) WARNING(CHAR_TO_STRING_("EXPECT FAIL ", typer::fmt(v1), " > ", typer::fmt(v2), " in %s:%d"), v1, v2, __FILE__, __LINE__)
+    #endif
     #ifndef EXPECT_EQ
-        #define EXPECT_EQ(v1, v2) if (v1 != v2) WARNING("EXPECT FAIL %d == %d in %s:%d", v1, v2, __FILE__, __LINE__)
+        #define EXPECT_EQ(v1, v2) if (v1 != v2) WARNING(CHAR_TO_STRING_("EXPECT FAIL ", typer::fmt(v1), " == ", typer::fmt(v2), " in %s:%d"), v1, v2, __FILE__, __LINE__)
     #endif
     #ifndef EXPECT_NE
-        #define EXPECT_NE(v1, v2) if (v1 == v2) WARNING("EXPECT FAIL %d != %d in %s:%d", v1, v2, __FILE__, __LINE__)
+        #define EXPECT_NE(v1, v2) if (v1 == v2) WARNING(CHAR_TO_STRING_("EXPECT FAIL ", typer::fmt(v1), " != ", typer::fmt(v2), " in %s:%d"), v1, v2, __FILE__, __LINE__)
     #endif
     #ifndef EXPECT_TRUE
         #define EXPECT_TRUE(v) if (v) WARNING("EXPECT FAIL in %s:%d", __FILE__, __LINE__)

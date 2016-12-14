@@ -1,6 +1,8 @@
 #ifndef Order_h
 #define Order_h
 
+#include "../Common.h"
+
 namespace Engine {
 
 class Order {
@@ -18,6 +20,9 @@ public:
         , type_(type) { }
 
     inline price_t price() { return price_; }
+    inline qty_t qty() { return qty_; }
+    inline OrderType type() { return type_; }
+
 private:
     price_t price_;
     qty_t qty_;
