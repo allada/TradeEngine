@@ -14,7 +14,7 @@ endif()
 
 find_package(Threads REQUIRED)
 
-set(CMAKE_CXX_FLAGS                   "-g -O0 -Wall -std=c++11 -v -lSegFault ${DEBUG_OUTPUT}")
+set(CMAKE_CXX_FLAGS                   "-g -O0 -Wall -std=c++11 -v -lJudy -lSegFault ${DEBUG_OUTPUT}")
 set(BASEPATH                          "${CMAKE_SOURCE_DIR}/src")
 include_directories(${BASEPATH})
 
@@ -31,8 +31,16 @@ set(
         src/Thread/TaskQueueThread.h
         src/Common.h
 
+        src/includes/crc32.h
+
         src/Net/UDPSocketRecvTask.h
         src/Net/APIDataPackage.h
+
+        src/Engine/BuyLedger.h
+        src/Engine/Order.h
+        src/Engine/SellLedger.h
+        src/Engine/Trade.h
+        src/Engine/TradeDeligate.h
 )
 
 set(
@@ -43,6 +51,12 @@ set(
         src/Thread/SocketPollThread.cpp
         src/Thread/TaskQueueThread.cpp
         src/Net/UDPSocketRecvTask.cpp
+
+        src/includes/crc32.cc
+
+        src/Engine/SellLedger.cpp
+        src/Engine/BuyLedger.cpp
+        src/Engine/Trade.cpp
 )
 
 add_executable(trader ${HEADERS} ${SOURCES} src/main.cpp)
