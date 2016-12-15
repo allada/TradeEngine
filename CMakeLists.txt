@@ -50,7 +50,9 @@ set(
         src/Thread/ThreadManager.cpp
         src/Thread/SocketPollThread.cpp
         src/Thread/TaskQueueThread.cpp
+
         src/Net/UDPSocketRecvTask.cpp
+        src/Net/APIDataPackage.cpp
 
         src/includes/crc32.cc
 
