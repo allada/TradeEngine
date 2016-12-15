@@ -101,7 +101,6 @@ private:
 
     static std::condition_variable& threadCountChangeCV_();
 
-    static std::shared_ptr<Threader> getAnyNonSelfThread_();
     static std::unordered_set<std::shared_ptr<Threader>>& staleThreads_();
 
     static void setSelfThread_(std::shared_ptr<Threader>);

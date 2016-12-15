@@ -54,18 +54,6 @@ void ThreadManager::setMainThread(std::shared_ptr<Threader> thread)
     main_thread_ = thread;
 }
 
-std::shared_ptr<Threader> ThreadManager::getAnyNonSelfThread_()
-{
-    std::lock_guard<std::mutex> lock(threadManagerMux_());
-    auto end = ThreadManager::activeThreads_().end();
-    for (auto it = ThreadManager::activeThreads_().begin(); it != end; ++it) {
-        if (it != end && it->second != thisThread()) {
-            return it->second;
-        }
-    }
-    return nullptr;
-}
-
 void ThreadManager::killAll()
 {
     // TODO This is not very good, kill() may close thread completely by the time join() is called.
