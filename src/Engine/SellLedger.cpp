@@ -31,7 +31,7 @@ std::unique_ptr<Order> SellLedger::tipOrder()
         --count_;
     }
     if (count_ == 0) {
-        tipPrice_ = 0;
+        tipPrice_ = std::numeric_limits<Order::price_t>::max();
     } else if (orderQueue->size() <= 1) {
         EXPECT_GT(count_, 0);
         Word_t newTipIndex = index;
@@ -51,6 +51,7 @@ std::unique_ptr<Order> SellLedger::tipOrder()
         JLD(return_code, PJLArray, index);
         EXPECT_EQ(return_code, 1);
     }
+    DEBUG("Sell Order Removed {qty: %llu, price: %llu}", returnOrder->qty(), returnOrder->price());
     return returnOrder;
 }
 
@@ -68,14 +69,14 @@ void SellLedger::addOrder(std::unique_ptr<Order> order)
 {
     Order::price_t sellPrice = order->price();
     Order::price_t lastBuyPrice = BuyLedger::tipPrice();
-    if (lastBuyPrice <= sellPrice && BuyLedger::count() > 0) {
+    if (lastBuyPrice >= sellPrice && BuyLedger::count() > 0) {
         std::unique_ptr<Order> buyOrder = BuyLedger::tipOrder();
         EXPECT_EQ(lastBuyPrice, buyOrder->price());
         Trade::execute(std::move(buyOrder), std::move(order), Order::OrderType::SELL);
         return;
     }
 
-    if (sellPrice > tipPrice_) {
+    if (sellPrice < tipPrice_) {
         tipPrice_ = sellPrice;
     }
     QueueOrders** pointer = reinterpret_cast<QueueOrders**>(JudyLGet(PJLArray, sellPrice, PJE0));
@@ -85,6 +86,7 @@ void SellLedger::addOrder(std::unique_ptr<Order> order)
         EXPECT_NE(pointer, PJERR);
         *pointer = new QueueOrders;
     }
+    DEBUG("Sell Order Added {qty: %llu, price: %llu}", order->qty(), order->price());
     (*pointer)->push(order.release());
     ++count_;
 }

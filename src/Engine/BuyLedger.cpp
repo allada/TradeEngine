@@ -32,7 +32,7 @@ std::unique_ptr<Order> BuyLedger::tipOrder()
     }
     if (count_ == 0) {
         tipPrice_ = 0;
-    } else if (orderQueue->size() <= 0) {
+    } else if (orderQueue->size() <= 1) {
         EXPECT_GT(count_, 0);
         Word_t newTipIndex = index;
         QueueOrders** newTipOrder = reinterpret_cast<QueueOrders**>(JudyLPrev(PJLArray, &newTipIndex, PJE0));
@@ -51,6 +51,7 @@ std::unique_ptr<Order> BuyLedger::tipOrder()
         JLD(return_code, PJLArray, index);
         EXPECT_EQ(return_code, 1);
     }
+    DEBUG("Buy Order Removed {qty: %llu, price: %llu}", returnOrder->qty(), returnOrder->price());
     return returnOrder;
 }
 
@@ -85,6 +86,7 @@ void BuyLedger::addOrder(std::unique_ptr<Order> order)
         EXPECT_NE(pointer, PJERR);
         *pointer = new QueueOrders;
     }
+    DEBUG("Buy Order Added {qty: %llu, price: %llu}", order->qty(), order->price());
     (*pointer)->push(order.release());
     ++count_;
 }

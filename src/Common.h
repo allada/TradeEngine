@@ -219,12 +219,14 @@ static const char* fmt(T)
         #define WARNING(...)
     #endif
 
-    inline std::string CHAR_TO_STRING_(const char* data) {
+    inline std::string CHAR_TO_STRING_(const char* data)
+    {
         return std::string(data);
     }
 
     template<typename ...Ints>
-    inline std::string CHAR_TO_STRING_(const char* data, Ints*... args) {
+    inline std::string CHAR_TO_STRING_(const char* data, Ints*... args)
+    {
         return std::string(data) + CHAR_TO_STRING_(args...);
     }
 

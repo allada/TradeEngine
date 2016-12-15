@@ -34,14 +34,31 @@
 #endif
 
 template<> const char* fmtLookupTable<int>()
-    { return "%d"; }
+{
+    return "%d";
+}
+
 template<> const char* fmtLookupTable<long>()
-    { return "%ld"; }
+{
+    return "%lu";
+}
+
 template<> const char* fmtLookupTable<unsigned long>()
-    { return "%ld"; }
+{
+    return "%lu";
+}
+
 template<> const char* fmtLookupTable<char>()
-    { return "%d"; }
+{
+    return "%d";
+}
+
 template<> const char* fmtLookupTable<unsigned long long>()
-    { return "%lld"; }
+{
+    return "%llu";
+}
+
 template<> const char* fmtLookupTable<void*>()
-    { return "%p"; }
+{
+    return "%p";
+}
