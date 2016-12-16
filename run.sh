@@ -22,6 +22,8 @@ do
             ENV_PARAMS="$ENV_PARAMS -e 'DEBUG_OUTPUT=1'";;
         "test")
             ENV_PARAMS="$ENV_PARAMS -e 'RUN_TESTS=1'";;
+        "optimized")
+            ENV_PARAMS="$ENV_PARAMS -e 'OPRIMIZED=1'";;
     esac
 done
 

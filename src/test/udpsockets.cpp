@@ -26,7 +26,8 @@ public:
         DEBUG("UDP Helper %d ready", socket_);
     }
 
-    void send(const std::vector<unsigned char>& data)
+    template <typename T>
+    void send(T data)
     {
         auto len = sendto(socket_, data.data(), data.size(), 0, (sockaddr *) &servAddr_, sizeof(servAddr_));
         EXPECT_EQ(len, data.size());
@@ -60,9 +61,7 @@ TEST(UDPTest, Recv1Byte) {
     UDPSocketRecvTaskMock udpSocketRecvTaskMock;
     UDPStreamHelper udpStreamHelper(UDP_TEST_IP, SERV_PORT);
 
-    std::string dummyString = "Hello foo bar!\n";
-    std::vector<unsigned char> dummyData1(PACKAGE_SIZE);
-    std::copy(dummyString.begin(), dummyString.end(), std::back_inserter(dummyString));
+    const std::array<unsigned char, 38> dummyData1 = {"Hello foo bar!\n"};
 
     udpStreamHelper.send(dummyData1);
     udpSocketRecvTaskMock.run();

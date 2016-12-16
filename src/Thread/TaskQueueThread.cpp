@@ -16,6 +16,7 @@ void TaskQueueThread::kill()
 
 void TaskQueueThread::addTask(std::unique_ptr<Tasker> task)
 {
+    EXPECT_NE(task.get(), nullptr);
     taskQueue_.push(std::move(task));
     notifier_cv_.notify_one();
 }
@@ -27,8 +28,9 @@ void TaskQueueThread::entryPoint()
         // Wake every 50 miliseconds and try to ensure we did not leave any stragglers.
         notifier_cv_.wait_for(lock, std::chrono::milliseconds(50));
         auto len = taskQueue_.countAsReader();
-        for (auto i = len; i > 0 && running_; --i) {
+        for (auto i = 0; i < len && running_; ++i) {
             std::unique_ptr<Tasker> task = taskQueue_.pop();
+            EXPECT_NE(task.get(), nullptr);
             task->run();
         }
     }

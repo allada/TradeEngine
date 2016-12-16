@@ -7,7 +7,7 @@
 using namespace Engine;
 
 // Lowest price.
-static Order::price_t tipPrice_ = 0;
+static Order::price_t tipPrice_ = std::numeric_limits<Order::price_t>::max();
 static uint64_t count_ = 0;
 static Pvoid_t PJLArray = (Pvoid_t) NULL;
 
@@ -31,6 +31,7 @@ std::unique_ptr<Order> SellLedger::tipOrder()
         --count_;
     }
     if (count_ == 0) {
+        EXPECT_EQ(JudyLCount(PJLArray, 0, -1, PJE0), 1);
         tipPrice_ = std::numeric_limits<Order::price_t>::max();
     } else if (orderQueue->size() <= 1) {
         EXPECT_GT(count_, 0);
@@ -51,7 +52,7 @@ std::unique_ptr<Order> SellLedger::tipOrder()
         JLD(return_code, PJLArray, index);
         EXPECT_EQ(return_code, 1);
     }
-    DEBUG("Sell Order Removed {qty: %llu, price: %llu}", returnOrder->qty(), returnOrder->price());
+    DEBUG("Sell Order Removed {qty: %llu, price: %llu, newTip: %llu}", returnOrder->qty(), returnOrder->price(), tipPrice_);
     return returnOrder;
 }
 

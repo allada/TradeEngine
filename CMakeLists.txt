@@ -14,7 +14,12 @@ endif()
 
 find_package(Threads REQUIRED)
 
-set(CMAKE_CXX_FLAGS                   "-g -O0 -Wall -std=c++11 -v -lJudy -lSegFault ${DEBUG_OUTPUT}")
+if("$ENV{OPRIMIZED}" STREQUAL "1")
+    set(CMAKE_CXX_FLAGS                   "-g -Ofast -march=native -Wall -std=c++11 -v -lJudy ${DEBUG_OUTPUT}")
+else()
+    set(CMAKE_CXX_FLAGS                   "-g -O0 -Wall -std=c++11 -v -lJudy -lSegFault ${DEBUG_OUTPUT}")
+endif()
+
 set(BASEPATH                          "${CMAKE_SOURCE_DIR}/src")
 include_directories(${BASEPATH})
 

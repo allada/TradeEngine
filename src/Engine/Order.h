@@ -19,9 +19,9 @@ public:
         , qty_(qty)
         , type_(type) { }
 
-    inline price_t price() { return price_; }
-    inline qty_t qty() { return qty_; }
-    inline OrderType type() { return type_; }
+    inline price_t price() const { return price_; }
+    inline qty_t qty() const { return qty_; }
+    inline OrderType type() const { return type_; }
 
 private:
     price_t price_;

@@ -31,6 +31,7 @@ std::unique_ptr<Order> BuyLedger::tipOrder()
         --count_;
     }
     if (count_ == 0) {
+        EXPECT_EQ(JudyLCount(PJLArray, 0, -1, PJE0), 1);
         tipPrice_ = 0;
     } else if (orderQueue->size() <= 1) {
         EXPECT_GT(count_, 0);
@@ -49,9 +50,8 @@ std::unique_ptr<Order> BuyLedger::tipOrder()
         delete orderQueue;
         int return_code;
         JLD(return_code, PJLArray, index);
-        EXPECT_EQ(return_code, 1);
     }
-    DEBUG("Buy Order Removed {qty: %llu, price: %llu}", returnOrder->qty(), returnOrder->price());
+    DEBUG("Buy Order Removed {qty: %llu, price: %llu, newTip: %llu, newCount: %llu}", returnOrder->qty(), returnOrder->price(), tipPrice_, count_);
     return returnOrder;
 }
 

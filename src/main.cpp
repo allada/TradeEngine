@@ -14,6 +14,8 @@
 #include "Engine/BuyLedger.h"
 #include "Engine/SellLedger.h"
 #include "includes/crc32.h"
+#include <endian.h>
+#include "Engine/Trade.h"
 
 std::shared_ptr<Thread::MainThread> mainThread;
 typedef std::chrono::high_resolution_clock Clock;
@@ -42,7 +44,7 @@ public:
     }
 
     template <typename T>
-    void send(const T& data)
+    void send(const T& data) const
     {
         auto len = sendto(socket_, data.data(), data.size(), 0, (sockaddr *) &servAddr_, sizeof(servAddr_));
         EXPECT_EQ(len, data.size());
@@ -57,21 +59,19 @@ private:
 // TODO I dont like this.
 extern std::shared_ptr<Thread::TaskQueueThread> uiThread;
 
-std::array<unsigned char, 38> packCreateOrder(uint64_t price, uint64_t qty, Engine::Order::OrderType type)
-{
-    std::array<unsigned char, 38> out;
-    out[0] = 1;
-    out[5] = type == Engine::Order::OrderType::BUY ? ACTION_CREATE_BUY_ORDER : ACTION_CREATE_SELL_ORDER;
-    uint64_t orderId;
-    memcpy(&out[6], &orderId, sizeof(uint64_t));
-    memcpy(&out[14], &price, sizeof(uint64_t));
-    memcpy(&out[22], &qty, sizeof(uint64_t));
-    memset(&out[30], '\0', sizeof(uint64_t));
-    uint32_t checksum = ::crc32(&out[5], 33);
-    DBG("checksum: %x", checksum);
-    memcpy(&out[1], &checksum, sizeof(uint32_t));
-    return out;
+inline void runOrder(const Engine::Order& order, const UDPStreamHelper& udpStreamHelper) {
+    Net::APIDataPackage package(order);
+    udpStreamHelper.send(package.data());
 }
+
+size_t trades = 0;
+
+class SpeedTradeDeligate : public virtual Engine::TradeDeligate {
+    void tradeExecuted(std::shared_ptr<Engine::Trade>) const
+    {
+        ++trades;
+    }
+};
 
 int main(int argc, char* argv[])
 {
@@ -87,40 +87,34 @@ int main(int argc, char* argv[])
 
         UDPStreamHelper udpStreamHelper("127.0.0.5", SERV_PORT);
 
+        Engine::Trade::addDeligate(WrapUnique(new SpeedTradeDeligate));
 
-        std::vector<unsigned char> package;
-        udpStreamHelper.send(package);
+        const auto NUM_ORDERS = 2500000;
+        const auto start = Clock::now();
+        for (auto i = NUM_ORDERS; i >= 0; --i) {
+            runOrder(Engine::Order(2, 5, Engine::Order::OrderType::SELL), udpStreamHelper);
+            runOrder(Engine::Order(1, 6, Engine::Order::OrderType::BUY), udpStreamHelper);
+            runOrder(Engine::Order(6, 9, Engine::Order::OrderType::SELL), udpStreamHelper);
+            runOrder(Engine::Order(5, 10, Engine::Order::OrderType::BUY), udpStreamHelper);
+            runOrder(Engine::Order(8, 7, Engine::Order::OrderType::SELL), udpStreamHelper);
+            runOrder(Engine::Order(7, 8, Engine::Order::OrderType::BUY), udpStreamHelper);
+            runOrder(Engine::Order(2, 5, Engine::Order::OrderType::SELL), udpStreamHelper);
+            runOrder(Engine::Order(1, 6, Engine::Order::OrderType::BUY), udpStreamHelper);
+            runOrder(Engine::Order(4, 3, Engine::Order::OrderType::SELL), udpStreamHelper);
+            runOrder(Engine::Order(3, 4, Engine::Order::OrderType::BUY), udpStreamHelper);
+        }
 
-
-    const auto NUM_ORDERS = 2500000;
-    const auto start = Clock::now();
-    size_t trades = 0;
-    udpStreamHelper.send(packCreateOrder(40, 107, Engine::Order::OrderType::SELL));
-    udpStreamHelper.send(packCreateOrder(40, 107, Engine::Order::OrderType::SELL));
-    // for (auto i = NUM_ORDERS; i >= 0; --i) {
-    //     //udpStreamHelper.send(packCreateOrder(40, 107, Engine::Order::OrderType::SELL));
-    //     packCreateOrder(9, 8, Engine::Order::OrderType::BUY);
-    //     packCreateOrder(2, 5, Engine::Order::OrderType::SELL);
-    //     packCreateOrder(1, 6, Engine::Order::OrderType::BUY);
-    //     packCreateOrder(6, 9, Engine::Order::OrderType::SELL);
-    //     packCreateOrder(5, 10, Engine::Order::OrderType::BUY);
-    //     packCreateOrder(8, 7, Engine::Order::OrderType::SELL);
-    //     packCreateOrder(7, 8, Engine::Order::OrderType::BUY);
-    //     packCreateOrder(2, 5, Engine::Order::OrderType::SELL);
-    //     packCreateOrder(1, 6, Engine::Order::OrderType::BUY);
-    //     packCreateOrder(4, 3, Engine::Order::OrderType::SELL);
-    //     packCreateOrder(3, 4, Engine::Order::OrderType::BUY);
-    // }
-    const auto end = Clock::now();
-    const auto timeTaken = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() / 1000 / 1000;
-    fprintf(stderr, "Orders Executed: %lu\n", trades);
-    fprintf(stderr, "Time taken: %ld milli seconds\n", timeTaken);
-    //fprintf(stderr, "Orders per second: %lu\n", trades / (timeTaken / 1000));
+        const auto end = Clock::now();
+        const auto timeTaken = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() / 1000 / 1000;
+        fprintf(stderr, "Orders Executed: %lu\n", trades);
+        fprintf(stderr, "Time taken: %ld milli seconds\n", timeTaken);
+        fprintf(stderr, "Orders per second: %lu\n", trades / (timeTaken / 1000));
 
 
 
 
-        signal(SIGINT, signalHandler);
+        Thread::ThreadManager::killAll();
+        //signal(SIGINT, signalHandler);
         if (argc < 2 || strlen(argv[1]) < 1) {
             fprintf(stderr, "First parameter must be a valid coin abbr name.\n");
             raise(SIGINT);

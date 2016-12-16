@@ -46,13 +46,14 @@ public:
             std::this_thread::yield();
         }
 
-        data_[write_index_++] = std::move_if_noexcept(item);
+        data_[write_index_] = std::move_if_noexcept(item);
+        write_index_ = (write_index_ + 1) % MAX_SIZE;
     }
 
     T pop()
     {
         EXPECT_NE(static_cast<int>(read_index_), static_cast<int>(write_index_)); // There does not appear to be anything in the queue to read.
-        T item = std::move(data_[read_index_]);
+        T item = std::move_if_noexcept(data_[read_index_]);
         read_index_ = (read_index_ + 1) % MAX_SIZE;
         return std::move_if_noexcept(item);
     }
