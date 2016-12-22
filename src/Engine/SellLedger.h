@@ -12,6 +12,8 @@ public:
     static std::unique_ptr<Order> tipOrder();
     static Order::price_t tipPrice();
     static uint64_t count();
+    static uint64_t processedCount();
+    static void reset();
 
     static void addOrder(std::unique_ptr<Order>);
 };

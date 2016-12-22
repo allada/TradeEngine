@@ -9,6 +9,7 @@ using namespace Engine;
 // Highest price.
 static Order::price_t tipPrice_ = 0;
 static uint64_t count_ = 0;
+static uint64_t processedCount_ = 0;
 static Pvoid_t PJLArray = (Pvoid_t) NULL;
 
 typedef std::queue<Order*> QueueOrders;
@@ -50,6 +51,7 @@ std::unique_ptr<Order> BuyLedger::tipOrder()
         delete orderQueue;
         int return_code;
         JLD(return_code, PJLArray, index);
+        EXPECT_EQ(return_code, 1);
     }
     DEBUG("Buy Order Removed {qty: %llu, price: %llu, newTip: %llu, newCount: %llu}", returnOrder->qty(), returnOrder->price(), tipPrice_, count_);
     return returnOrder;
@@ -65,8 +67,14 @@ uint64_t BuyLedger::count()
     return count_;
 }
 
+uint64_t BuyLedger::processedCount()
+{
+    return processedCount_;
+}
+
 void BuyLedger::addOrder(std::unique_ptr<Order> order)
 {
+    ++processedCount_;
     Order::price_t buyPrice = order->price();
     Order::price_t lastSellPrice = SellLedger::tipPrice();
     if (lastSellPrice <= buyPrice && SellLedger::count() > 0) {
@@ -89,4 +97,21 @@ void BuyLedger::addOrder(std::unique_ptr<Order> order)
     DEBUG("Buy Order Added {qty: %llu, price: %llu}", order->qty(), order->price());
     (*pointer)->push(order.release());
     ++count_;
+}
+
+void BuyLedger::reset()
+{
+    size_t i = 0;
+    QueueOrders** orderQueue = reinterpret_cast<QueueOrders**>(JudyLFirst(PJLArray, &i, PJE0));
+    while (orderQueue != NULL) {
+        while (!(*orderQueue)->empty()) {
+            Order* order = (*orderQueue)->front();
+            (*orderQueue)->pop();
+            delete order;
+        }
+        delete *orderQueue;
+        //JudyLDel(&PJLArray, i);
+        orderQueue = reinterpret_cast<QueueOrders**>(JudyLNext(PJLArray, &i, PJE0));
+    }
+    JudyLFreeArray(&PJLArray, PJE0);
 }

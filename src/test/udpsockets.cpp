@@ -1,7 +1,7 @@
 #include "gtest/gtest.h"
 
 #include <arpa/inet.h>
-#include "Net/APIDataPackage.h"
+#include "API/DataPackage.h"
 #include "Net/UDPSocketRecvTask.h"
 #include <errno.h>
 
@@ -22,14 +22,14 @@ public:
         servAddr_.sin_port = htons(port);
 
         const int broadcast = 1;
-        setsockopt(socket_, SOL_SOCKET, SO_BROADCAST, &broadcast, sizeof(broadcast));
+        setsockopt(socket_, SOL_SOCKET, SO_BROADCAST, &broadcast, sizeof(const int));
         DEBUG("UDP Helper %d ready", socket_);
     }
 
     template <typename T>
     void send(T data)
     {
-        auto len = sendto(socket_, data.data(), data.size(), 0, (sockaddr *) &servAddr_, sizeof(servAddr_));
+        auto len = sendto(socket_, data.data(), data.size(), 0, (const sockaddr *) &servAddr_, sizeof(struct sockaddr));
         EXPECT_EQ(len, data.size());
         EXPECT_NE(errno, 0) << strerror(errno);
     }
@@ -42,15 +42,15 @@ private:
 
 class UDPSocketRecvTaskMock : public UDPSocketRecvTask {
 public:
-    void packageReady(std::unique_ptr<APIDataPackage> package) override
+    void packageReady(std::unique_ptr<API::DataPackage> package) override
     {
         package_ = std::move(package);
     }
 
-    std::unique_ptr<APIDataPackage> packageForTest() { return std::move(package_); }
+    std::unique_ptr<API::DataPackage> packageForTest() { return std::move(package_); }
 
 private:
-    std::unique_ptr<APIDataPackage> package_;
+    std::unique_ptr<API::DataPackage> package_;
 
 };
 
@@ -66,7 +66,7 @@ TEST(UDPTest, Recv1Byte) {
     udpStreamHelper.send(dummyData1);
     udpSocketRecvTaskMock.run();
 
-    std::unique_ptr<APIDataPackage> package = udpSocketRecvTaskMock.packageForTest();
+    std::unique_ptr<API::DataPackage> package = udpSocketRecvTaskMock.packageForTest();
 
     ASSERT_EQ(package->data().size(), dummyData1.size());
     ASSERT_EQ(package->data(), dummyData1);

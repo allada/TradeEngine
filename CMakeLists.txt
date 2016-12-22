@@ -15,9 +15,9 @@ endif()
 find_package(Threads REQUIRED)
 
 if("$ENV{OPRIMIZED}" STREQUAL "1")
-    set(CMAKE_CXX_FLAGS                   "-g -Ofast -march=native -Wall -std=c++11 -v -lJudy ${DEBUG_OUTPUT}")
+    set(CMAKE_CXX_FLAGS                   "-Ofast -march=native -Wall -std=c++11 -v -lJudy ${DEBUG_OUTPUT}")
 else()
-    set(CMAKE_CXX_FLAGS                   "-g -O0 -Wall -std=c++11 -v -lJudy -lSegFault ${DEBUG_OUTPUT}")
+    set(CMAKE_CXX_FLAGS                   "-g -O0 -Wall -std=c++11 -v -lJudy ${DEBUG_OUTPUT}")
 endif()
 
 set(BASEPATH                          "${CMAKE_SOURCE_DIR}/src")
@@ -25,41 +25,45 @@ include_directories(${BASEPATH})
 
 set(
     HEADERS
-        src/Thread/SocketPollThread.h
-        src/Thread/SocketTasker.h
-        src/Thread/Thread.h
-        src/Thread/Threader.h
-        src/Thread/Tasker.h
-        src/Thread/MainThread.h
-        src/Thread/ThreadManager.h
-        src/Thread/TaskQueue.h
-        src/Thread/TaskQueueThread.h
+        src/Threading/SocketPollThread.h
+        src/Threading/SocketTasker.h
+        src/Threading/Thread.h
+        src/Threading/Threader.h
+        src/Threading/Tasker.h
+        src/Threading/MainThread.h
+        src/Threading/ThreadManager.h
+        src/Threading/TaskQueue.h
+        src/Threading/TaskQueueThread.h
         src/Common.h
 
         src/includes/crc32.h
+        src/includes/MemoryAllocator.h
+
+        src/API/DataPackage.h
+        src/API/StreamDispatcher.h
 
         src/Net/UDPSocketRecvTask.h
-        src/Net/APIDataPackage.h
 
         src/Engine/BuyLedger.h
         src/Engine/Order.h
         src/Engine/SellLedger.h
         src/Engine/Trade.h
         src/Engine/TradeDeligate.h
+        src/Engine/ProcessOrderTask.h
 )
 
 set(
     SOURCES
         src/Common.cpp
-        src/Thread/Threader.cpp
-        src/Thread/ThreadManager.cpp
-        src/Thread/SocketPollThread.cpp
-        src/Thread/TaskQueueThread.cpp
+        src/Threading/Thread.cpp
+        src/Threading/Threader.cpp
+        src/Threading/ThreadManager.cpp
+        src/Threading/SocketPollThread.cpp
+        src/Threading/TaskQueueThread.cpp
+
+        src/includes/MemoryAllocator.cpp
 
         src/Net/UDPSocketRecvTask.cpp
-        src/Net/APIDataPackage.cpp
-
-        src/includes/crc32.cc
 
         src/Engine/SellLedger.cpp
         src/Engine/BuyLedger.cpp

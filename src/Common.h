@@ -7,6 +7,14 @@
 
 typedef int FileDescriptor;
 
+#include <chrono>
+extern size_t PROFILER_ACCUM;
+
+#define PROFILE_START() \
+    { auto _temp_profiler_start_time = std::chrono::high_resolution_clock::now();
+#define PROFILE_END() \
+    PROFILER_ACCUM += std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - _temp_profiler_start_time).count(); }
+
 #define STATIC_ONLY(Type) \
     private:              \
         Type() = delete;  \
@@ -20,6 +28,15 @@ template <typename T>
 inline std::unique_ptr<T> WrapUnique(T* ptr) {
   return std::unique_ptr<T>(ptr);
 }
+
+template<typename T>
+struct is_unique_ptr 
+    : std::false_type {
+};
+template<typename T>
+struct is_unique_ptr<std::unique_ptr<T>> 
+    : std::true_type {
+};
 
 // Syntactic sugar to make Callback<void()> easier to declare since it
 // will be used in a lot of APIs with delayed execution.
@@ -193,6 +210,9 @@ static const char* fmt(T)
     return fmtLookupTable<typename std::decay<T>::type>();
 }
 
+#define UNLIKELY(x) __builtin_expect(!!(x), 0)
+#define LIKELY(x) __builtin_expect(!!(x), 1)
+
 #if !IS_DEBUG || defined(IS_TEST)
     #ifndef WARNING
         #define WARNING(...)
@@ -247,5 +267,8 @@ static const char* fmt(T)
     #endif
 #endif
 
-#define EXPECT_MAIN_THREAD() EXPECT_EQ(static_cast<int>(std::hash<std::thread::id>()(::Thread::ThreadManager::mainThreadId())), static_cast<int>(std::hash<std::thread::id>()(::Thread::ThreadManager::thisThreadId())))
+#define EXPECT_MAIN_THREAD() EXPECT_EQ(static_cast<int>(std::hash<std::thread::id>()(::Threading::ThreadManager::mainThreadId())), static_cast<int>(std::hash<std::thread::id>()(::Threading::ThreadManager::thisThreadId())))
+
+#include "includes/MemoryAllocator.h"
+
 #endif /* Common_h */

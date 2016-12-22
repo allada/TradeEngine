@@ -1,7 +1,9 @@
 #include "Common.h"
 
+extern size_t PROFILER_ACCUM = 0;
+
 #ifdef TERMINAL_COLOR
-    #include "Thread/Threader.h"
+    #include "Threading/Threader.h"
     #include <unordered_map>
 
     static inline const std::string resetColor()
@@ -11,7 +13,7 @@
 
     const std::string& debugthisThreadName_()
     {
-        return Thread::thisThreadName();
+        return Threading::thisThreadName();
     }
 
     static constexpr TerminalColor::Color colors_[3] = { TerminalColor::RED, TerminalColor::GREEN, TerminalColor::BLUE };

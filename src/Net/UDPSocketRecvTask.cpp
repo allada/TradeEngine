@@ -1,5 +1,7 @@
 #include "UDPSocketRecvTask.h"
 
+#include "../Threading/TaskQueueThread.h"
+#include "../Engine/ProcessOrderTask.h"
 #include <sys/socket.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -7,7 +9,7 @@
 using namespace Net;
 
 UDPSocketRecvTask::UDPSocketRecvTask()
-    : Thread::SocketTasker(static_cast<FileDescriptor>(socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)))
+    : Threading::SocketTasker(static_cast<FileDescriptor>(socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)))
 {
     struct sockaddr_in servAddr;
     servAddr.sin_family = AF_INET;
@@ -20,44 +22,24 @@ UDPSocketRecvTask::UDPSocketRecvTask()
     DEBUG("UDP Socket %d Sniffing", socket_);
 }
 
+inline API::StreamDispatcher::Hash hashAddr(const struct sockaddr_in& addr)
+{
+    return API::StreamDispatcher::hash(&addr.sin_port, sizeof(addr.sin_port), API::StreamDispatcher::hash(&addr.sin_addr.s_addr, sizeof(addr.sin_addr.s_addr)));
+}
+
 void UDPSocketRecvTask::run()
 {
-    unsigned char buff[MAX_BUFF_SIZE];
+    std::vector<unsigned char> buff(MAX_BUFF_SIZE);
+    //IFVALGRIND(memset(&buff, '\0', MAX_BUFF_SIZE));
     struct sockaddr_in remoteAddr;
+    IFVALGRIND(memset((char *) &remoteAddr, 0, sizeof(remoteAddr)));
     socklen_t addrLen = sizeof(remoteAddr);
-    
-    size_t len = recvfrom(socket_, &buff, MAX_BUFF_SIZE, MSG_DONTWAIT, (struct sockaddr *) &remoteAddr, &addrLen);
-    size_t addr_hash = hashAddr(remoteAddr);
 
-    size_t consumedLength = 0;
-    while (consumedLength < len) {
-        std::unique_ptr<APIDataPackage> package;
-        if (partial_packages_.count(addr_hash)) {
-            package = std::move(partial_packages_[addr_hash]);
-        } else {
-            package = WrapUnique(new APIDataPackage);
-        }
-        consumedLength += package->appendData(buff[consumedLength], len);
-
-        EXPECT_TRUE(package->isDone() || consumedLength == len); // API Data Package has not consumed all the data and is not done
-
-        if (package->isDone()) {
-            // TODO Send to IO thread?
-            this->packageReady(std::move(package));
-        }
+    size_t len = recvfrom(socket_, buff.data(), MAX_BUFF_SIZE, MSG_DONTWAIT, (struct sockaddr *) &remoteAddr, &addrLen);
+    if (len == -1) {
+        // TODO Better error checking.
+        DEBUG("Socket %d got error: %d", socket_, errno);
     }
-    DEBUG("Socket %d got %d bytes of data", socket_, len);
-    if (errno == EAGAIN || errno == EWOULDBLOCK) {
-        DEBUG("Socket %d got EAGAIN");
-    }
-}
 
-void UDPSocketRecvTask::packageReady(std::unique_ptr<APIDataPackage> package)
-{
-    std::unique_ptr<Tasker> task = package->makeTask();
-}
-
-size_t UDPSocketRecvTask::hashAddr(const sockaddr_in& addr)
-{
-    return std::hash<unsigned long>()(addr.sin_addr.s_addr) ^ std::hash<unsigned short>()(addr.sin_port);
+    stream_dispatcher_.processData(hashAddr(remoteAddr), buff.data(), len);
 }

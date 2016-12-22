@@ -10,8 +10,8 @@ public:
     typedef unsigned long long qty_t;
     typedef unsigned long long price_t;
     enum class OrderType {
-        BUY,
-        SELL
+        BUY = 0,
+        SELL = 1
     };
 
     Order(price_t price, qty_t qty, OrderType type)
