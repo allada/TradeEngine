@@ -1,11 +1,11 @@
 #include "gtest/gtest.h"
 
-#include "Thread/SocketPollThread.h"
-#include "Thread/TaskQueueThread.h"
-#include "Thread/ThreadManager.h"
+#include "Threading/SocketPollThread.h"
+#include "Threading/TaskQueueThread.h"
+#include "Threading/ThreadManager.h"
 
 namespace {
-using namespace Thread;
+using namespace Threading;
 
 class ThreadTest : public ::testing::Test {
 };
@@ -63,6 +63,7 @@ TEST(ThreadTest, QueueVerifyData) {
                 dataQueue->pushChunk(list);
             }
             cv->notify_one();
+            lock.unlock();
         }
 
     private:
@@ -81,18 +82,18 @@ TEST(ThreadTest, QueueVerifyData) {
 
     std::shared_ptr<TaskQueueThread> thread = createThread<TaskQueueThread>("Producer");
     thread->addTask(WrapUnique(new Producer(mux, cv, dataQueue, running)));
+
     lock.lock();
     cv.wait(lock, [running]{ return running; });
 
     std::vector<uint8_t> list(1);
-    dataQueue.popChunk(list);
+    dataQueue.popChunk(list, list.size());
     EXPECT_EQ(list[0], '1');
-
     cv.notify_one();
     cv.wait(lock);
 
     list.resize(12);
-    dataQueue.popChunk(list);
+    dataQueue.popChunk(list, list.size());
     EXPECT_EQ(list[0], '1');
     EXPECT_EQ(list[1], '2');
     EXPECT_EQ(list[2], '3');
@@ -110,7 +111,7 @@ TEST(ThreadTest, QueueVerifyData) {
     cv.wait(lock);
 
     list.resize(6);
-    dataQueue.popChunk(list);
+    dataQueue.popChunk(list, list.size());
     EXPECT_EQ(list[0], 'F');
     EXPECT_EQ(list[1], '0');
     EXPECT_EQ(list[2], 'O');
@@ -122,7 +123,7 @@ TEST(ThreadTest, QueueVerifyData) {
     cv.wait(lock);
 
     list.resize(9);
-    dataQueue.popChunk(list);
+    dataQueue.popChunk(list, list.size());
     EXPECT_EQ(list[0], 'T');
     EXPECT_EQ(list[1], 'H');
     EXPECT_EQ(list[2], 'I');
@@ -134,7 +135,7 @@ TEST(ThreadTest, QueueVerifyData) {
     EXPECT_EQ(list[8], 'C');
 
     list.resize(3);
-    dataQueue.popChunk(list);
+    dataQueue.popChunk(list, list.size());
     EXPECT_EQ(list[0], 'H');
     EXPECT_EQ(list[1], 'M');
     EXPECT_EQ(list[2], 'O');

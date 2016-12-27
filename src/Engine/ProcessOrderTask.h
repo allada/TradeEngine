@@ -11,13 +11,14 @@
 namespace Engine {
 
 class ProcessOrderTask : public virtual Threading::Tasker {
+    FAST_ALLOCATE(ProcessOrderTask)
 public:
     ProcessOrderTask(std::unique_ptr<API::DataPackage> package)
         : package_(std::move(package)) { }
 
     void run() override {
         EXPECT_NE(package_.get(), nullptr);
-        EXPECT_EQ(package_->version(), API::DataPackage::PROTOCOL_VERSION);
+        EXPECT_EQ(package_->version(), PROTOCOL_VERSION);
 
         if (UNLIKELY(package_->verifyChecksum())) {
             WARNING("Got bad checksum, ignoring packet");
@@ -27,10 +28,10 @@ public:
         switch (package_->action()) {
             case API::DataPackage::CREATE_BUY_ORDER:
                 //uint64_t orderId = extractOrderId();
-                Engine::BuyLedger::addOrder(WrapUnique(new Order(package_->price(), package_->qty(), Engine::Order::OrderType::BUY)));
+                Engine::BuyLedger::instance()->handleOrder(WrapUnique(new Order(package_->orderId(), package_->price(), package_->qty(), Engine::Order::OrderType::BUY)));
                 break;
             case API::DataPackage::CREATE_SELL_ORDER:
-                Engine::SellLedger::addOrder(WrapUnique(new Order(package_->price(), package_->qty(), Engine::Order::OrderType::SELL)));
+                Engine::SellLedger::instance()->handleOrder(WrapUnique(new Order(package_->orderId(), package_->price(), package_->qty(), Engine::Order::OrderType::SELL)));
                 break;
             default:
                 WARNING("Unknown action. Dropping order.");

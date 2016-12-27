@@ -82,7 +82,11 @@ public:
     SocketPollThread(std::unique_ptr<std::thread>, const std::string& name);
 
     void addSocketTasker(std::unique_ptr<SocketTasker>);
-    void addTask(std::unique_ptr<Tasker>);
+    void addTask(std::unique_ptr<Tasker> task)
+    {
+        cross_thread_task_runner_adder_(std::move(task));
+    }
+
     void kill() override;
     void entryPoint() override;
     void sendSignal(Signals) override;

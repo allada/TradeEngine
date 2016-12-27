@@ -9,6 +9,7 @@
 namespace API {
 
 class StreamDispatcher {
+    FAST_ALLOCATE(StreamDispatcher)
 public:
     typedef size_t Hash;
 
@@ -21,23 +22,16 @@ public:
     {
         unsigned char* end = begin + len;
         while (end > begin) {
-            std::unique_ptr<DataPackage> package;
-            if (partial_packages_.count(originHash)) {
-                package = std::move(partial_packages_[originHash]);
-            } else {
-                package = WrapUnique(new DataPackage);
-            }
+            std::unique_ptr<DataPackage> package(new DataPackage);
             begin += package->appendData(begin, end - begin);
 
             EXPECT_TRUE(package->isDone() || begin == end); // API Data Package has not consumed all the data and is not done
 
-            if (package->isDone()) {
-                // TODO Send to IO thread?
-                processPackage(std::move(package));
-            } else {
-                EXPECT_EQ(partial_packages_.count(originHash), 0);
-                partial_packages_.emplace(originHash, std::move(partial_packages_[originHash]));
+            if (UNLIKELY(!package->isDone())) {
+                WARNING("Got incomplete order, dropping data");
+                return;
             }
+            processPackage(std::move(package));
         }
     }
 
@@ -49,9 +43,6 @@ public:
         }
         Threading::uiThread()->addTask(WrapUnique(new Engine::ProcessOrderTask(std::move(package))));
     }
-
-private:
-    std::unordered_map<Hash, std::unique_ptr<DataPackage>> partial_packages_;
 
 };
 

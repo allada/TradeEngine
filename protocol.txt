@@ -1,14 +1,52 @@
 All Little Endian
 
+
+ActionTypes {
+    CREATE_ORDER = 0,
+    MODIFY_ORDER = 1,
+    REMOVE_ORDER = 2,
+
+    TRADE_EXECUTED = 0x70
+}
+
+Side {
+    BUY = 0,
+    SELL = 1
+}
+
+OrderTypes {
+    LIMIT = 0,
+    MARKET = 1,
+    STOP = 2
+}
+
+Flags {
+    POST_ONLY = 0x1
+}
+
  0 1 2 3 4 5 6 7   8 9 A B C D E F . 0 1 2 3 4 5 6 7   8 9 A B C D E F
 |---------------------------------------------------------------------|
 |         Protocol Version         |           Checksum ...           |
 |                          ...  Checksum                              |
-|          ... Checksum            |           Order Type             |
-|                             New Order ID ...                        |
-|                         ... New Order ID                            |
-|                         ... New Order ID                            |
-|                         ... New Order ID                            |
+|          ... Checksum            |           Action Type            |
+|                           Package Data ...                          |
+|---------------------------------------------------------------------|
+
+
+if OrderType == CREATE_ORDER:
+GUID Order ID = 16 bytes
+
+ 0 1 2 3 4 5 6 7   8 9 A B C D E F . 0 1 2 3 4 5 6 7   8 9 A B C D E F
+|---------------------------------------------------------------------|
+|      Side      |     OrderType   |              Flags               |
+|                             GUID Order ID...                        |
+|                         ... GUID Order ID                           |
+|                         ... GUID Order ID                           |
+|                         ... GUID Order ID                           |
+|                         ... GUID Order ID                           |
+|                         ... GUID Order ID                           |
+|                         ... GUID Order ID                           |
+|                         ... GUID Order ID                           |
 |                                Price ...                            |
 |                            ... Price                                |
 |                            ... Price                                |
@@ -17,8 +55,27 @@ All Little Endian
 |                             ... Qty                                 |
 |                             ... Qty                                 |
 |                             ... Qty                                 |
-|                            Old Order ID ...                         |
-|                        ... Old Order ID                             |
-|                        ... Old Order ID                             |
-|                        ... Old Order ID                             |
 |---------------------------------------------------------------------|
+
+
+if OrderType == DeleteOrder
+Delete Order
+
+
+ 0 1 2 3 4 5 6 7   8 9 A B C D E F . 0 1 2 3 4 5 6 7   8 9 A B C D E F
+|---------------------------------------------------------------------|
+|      Side      |     Unused      |              Flags               |
+|                             GUID Order ID...                        |
+|                         ... GUID Order ID                           |
+|                         ... GUID Order ID                           |
+|                         ... GUID Order ID                           |
+|                         ... GUID Order ID                           |
+|                         ... GUID Order ID                           |
+|                         ... GUID Order ID                           |
+|                         ... GUID Order ID                           |
+|                                Price ...                            |
+|                            ... Price                                |
+|                            ... Price                                |
+|                            ... Price                                |
+|---------------------------------------------------------------------|
+

@@ -15,9 +15,9 @@ endif()
 find_package(Threads REQUIRED)
 
 if("$ENV{OPRIMIZED}" STREQUAL "1")
-    set(CMAKE_CXX_FLAGS                   "-Ofast -march=native -Wall -std=c++11 -v -lJudy ${DEBUG_OUTPUT}")
+    set(CMAKE_CXX_FLAGS                   "-Ofast -march=native -Wall -std=c++11 ${DEBUG_OUTPUT}")
 else()
-    set(CMAKE_CXX_FLAGS                   "-g -O0 -Wall -std=c++11 -v -lJudy ${DEBUG_OUTPUT}")
+    set(CMAKE_CXX_FLAGS                   "-g -O0 -Wall -std=c++11 ${DEBUG_OUTPUT}")
 endif()
 
 set(BASEPATH                          "${CMAKE_SOURCE_DIR}/src")
@@ -48,8 +48,8 @@ set(
         src/Engine/Order.h
         src/Engine/SellLedger.h
         src/Engine/Trade.h
-        src/Engine/TradeDeligate.h
         src/Engine/ProcessOrderTask.h
+        src/Engine/Ledger.h
 )
 
 set(
@@ -59,7 +59,6 @@ set(
         src/Threading/Threader.cpp
         src/Threading/ThreadManager.cpp
         src/Threading/SocketPollThread.cpp
-        src/Threading/TaskQueueThread.cpp
 
         src/includes/MemoryAllocator.cpp
 
@@ -71,7 +70,7 @@ set(
 )
 
 add_executable(trader ${HEADERS} ${SOURCES} src/main.cpp)
-target_link_libraries(trader pthread)
+target_link_libraries(trader pthread Judy)
 
 project (TradeEngine_test)
 add_subdirectory(${CMAKE_SOURCE_DIR}/gtest)
@@ -91,3 +90,4 @@ target_link_libraries(${PROJECT_TEST_NAME}
 target_link_libraries(${PROJECT_TEST_NAME} ${CMAKE_THREAD_LIBS_INIT})
 target_compile_definitions(${PROJECT_TEST_NAME} PUBLIC -DIS_TEST)
 add_test(test1 ${PROJECT_TEST_NAME})
+target_link_libraries(${PROJECT_TEST_NAME} pthread Judy)

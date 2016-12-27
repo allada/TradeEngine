@@ -40,36 +40,33 @@ private:
 
 };
 
-class UDPSocketRecvTaskMock : public UDPSocketRecvTask {
+std::unique_ptr<API::DataPackage> package_;
+
+class HandlePackageForTest : public API::StreamDispatcher {
 public:
-    void packageReady(std::unique_ptr<API::DataPackage> package) override
+    void processPackage(std::unique_ptr<API::DataPackage> package) override
     {
         package_ = std::move(package);
     }
-
-    std::unique_ptr<API::DataPackage> packageForTest() { return std::move(package_); }
-
-private:
-    std::unique_ptr<API::DataPackage> package_;
-
 };
 
 class UDPTest : public ::testing::Test {
 };
 
 TEST(UDPTest, Recv1Byte) {
-    UDPSocketRecvTaskMock udpSocketRecvTaskMock;
+    UDPSocketRecvTask udpRecv(WrapUnique(new HandlePackageForTest));
     UDPStreamHelper udpStreamHelper(UDP_TEST_IP, SERV_PORT);
 
     const std::array<unsigned char, 38> dummyData1 = {"Hello foo bar!\n"};
 
     udpStreamHelper.send(dummyData1);
-    udpSocketRecvTaskMock.run();
+    udpRecv.run();
 
-    std::unique_ptr<API::DataPackage> package = udpSocketRecvTaskMock.packageForTest();
+    ASSERT_NE(package_, nullptr);
 
-    ASSERT_EQ(package->data().size(), dummyData1.size());
-    ASSERT_EQ(package->data(), dummyData1);
+    ASSERT_EQ(package_->data().size(), dummyData1.size());
+    ASSERT_EQ(package_->data(), dummyData1);
+    package_ = nullptr;
 }
 
 } // namespace

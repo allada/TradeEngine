@@ -9,18 +9,22 @@
 
 // TODO Move this config data somewhere else.
 #define SERV_PORT 3010
-#define MAX_BUFF_SIZE 65600
+#define MAX_BUFF_SIZE 65507
 
 namespace Net {
 
 class UDPSocketRecvTask : public Threading::SocketTasker {
 public:
-    UDPSocketRecvTask();
+    UDPSocketRecvTask()
+        : UDPSocketRecvTask(WrapUnique(new API::StreamDispatcher())) { }
+    explicit UDPSocketRecvTask(std::unique_ptr<API::StreamDispatcher>);
 
     void run() override;
 
+    static size_t total_data_received_;
+
 private:
-    API::StreamDispatcher stream_dispatcher_;
+    std::unique_ptr<API::StreamDispatcher> stream_dispatcher_;
 
 };
 

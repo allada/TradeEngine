@@ -18,6 +18,7 @@
 #include <endian.h>
 #include "Engine/Trade.h"
 #include <fcntl.h>
+#include <sys/ioctl.h>
 #include "Threading/SocketTasker.h"
 #include <errno.h>
 #include <fstream>
@@ -38,7 +39,7 @@ void signalHandler(int signal)
 
 uint64_t totalDataSent = 0;
 
-#define MAX_PACKET_SIZE 65507lu
+#define MAX_PACKET_SIZE ((65507lu / PACKAGE_SIZE) * PACKAGE_SIZE)
 
 struct sockaddr_in servAddr_;
 FileDescriptor udpSendSock;
@@ -56,25 +57,36 @@ public:
         std::vector<unsigned char> chunk(MAX_PACKET_SIZE);
         for (;;) {
             size_t bufferSize = TaskSendBuffer::dataQueue.countAsReader();
-            if (!bufferSize)
+            // We must have enough data to send.
+            if (bufferSize < PACKAGE_SIZE) {
                 break;
-            size_t chunkSize = std::min(bufferSize, MAX_PACKET_SIZE);
+            }
+            size_t chunkSize = (std::min(bufferSize, MAX_PACKET_SIZE) / PACKAGE_SIZE) * PACKAGE_SIZE;
             EXPECT_GT(MAX_PACKET_SIZE + 1, chunkSize);
+            EXPECT_EQ(chunkSize % PACKAGE_SIZE, 0);
             
-            // DBG("%lu", chunk.size());
             TaskSendBuffer::dataQueue.popChunk(chunk, chunkSize);
 
             for (size_t i = 0; i < chunkSize; ) {
-                //std::this_thread::sleep_for(std::chrono::milliseconds(50));
-                auto len = sendto(udpSendSock, chunk.data() + i, chunkSize - i, 0, (struct sockaddr *) &servAddr_, sizeof(servAddr_));
-                if (len == -1) {
-                   fprintf(stderr, "ERROR! %d\n", errno);
+
+std::this_thread::sleep_for(std::chrono::microseconds(10));
+                //std::this_thread::sleep_for(std::chrono::microseconds(700));
+                //std::this_thread::sleep_for(std::chrono::microseconds(1233));
+                //std::this_thread::sleep_for(std::chrono::microseconds(2033));
+                //std::this_thread::sleep_for(std::chrono::microseconds(1700));
+
+                ssize_t len = sendto(udpSendSock, chunk.data() + i, chunkSize, 0, (struct sockaddr *) &servAddr_, sizeof(servAddr_));
+
+                if (errno) {
+                    //DBG("%lu", errno);
                 }
+
+                EXPECT_EQ(chunkSize, len);
                 //fprintf(stderr, "Sent %lu bytes\n", len);
                 if (len == -1) {
                     fprintf(stderr, "ERROR! %d\n", errno);
                 } else {
-                    i += len;
+                    i += len; //(len / PACKAGE_SIZE) * PACKAGE_SIZE;
                     totalDataSent += len;
                 }
             }
@@ -84,7 +96,8 @@ public:
 
     static inline void scheduleForRun()
     {
-        if (isRunning.test_and_set(std::memory_order_acquire) == 0) {
+
+        if (!isRunning.test_and_set(std::memory_order_acquire)) {
             ioSendNetworkThread->addTask(WrapUnique(new TaskSendBuffer));
         }
     }
@@ -97,63 +110,43 @@ Threading::TaskQueue<unsigned char, 16777215> TaskSendBuffer::dataQueue;
 std::atomic_flag TaskSendBuffer::isRunning = ATOMIC_FLAG_INIT;
 
 
-class CreateOrderTasker : public virtual Threading::Tasker {
-    FAST_ALLOCATE(CreateOrderTasker)
+size_t ordersSentCount = 0;
+std::condition_variable doneCv;
+
+class OrderCounter : public virtual Engine::LedgerDeligate, public virtual Engine::TradeDeligate {
 public:
-    CreateOrderTasker(FileDescriptor socket, std::unique_ptr<API::DataPackage> package)
-        // : Threading::SocketTasker(static_cast<FileDescriptor>(eventfd(0, EFD_SEMAPHORE | O_NONBLOCK)))
-        : package_(std::move(package))
-        , socket_(socket) { }
-
-    void run() override
+    void addedToLedger(const Engine::Order&) override
     {
-        // auto count = queue_.countAsReader();
-        // std::vector<unsigned char> sendData;
-        // for (auto i = count; i > 0; --i) {
-            // std::unique_ptr<API::DataPackage> package = queue_.pop();
-            //sendData.insert(sendData.end(), package->data().cbegin(), package->data().cend());
-        // }
-        //CreateOrderTasker::network_send_buffer_->queueData(std::move(package_));
-        //size_t len = package_->data().size();
-        //size_t len = sendto(socket_, package_.data().data(), package_.data().size(), 0, (struct sockaddr *) &servAddr_, sizeof(servAddr_));
-        // if (len == -1) {
-        //     fprintf(stderr, "ERROR! %d\n", errno);
-        // }
-        // if (len == EAGAIN)
-        //     fprintf(stderr, "EAGAIN!\n");
-        // else if (len == EWOULDBLOCK)
-        //     fprintf(stderr, "EWOULDBLOCK\n");
-        // totalDataSent += len + 20;
-
-        TaskSendBuffer::dataQueue.pushChunk(package_->data());
-        TaskSendBuffer::scheduleForRun();
+        ++OrderCounter::ordersProcessed;
+        if (ordersSentCount <= OrderCounter::ordersProcessed.load()) {
+            doneCv.notify_all();
+        }
     }
 
-private:
-    std::unique_ptr<API::DataPackage> package_;
-    FileDescriptor socket_;
-
-};
-
-
-inline void runOrder(const Engine::Order& order)
-{
-    //PROFILE_START()
-    //PROFILE_END()
-    // API::DataPackage package(order);
-    // TaskSendBuffer::dataQueue.pushChunk(package.data());
-    // TaskSendBuffer::scheduleForRun();
-    //ioSendThread->addTask(WrapUnique(new CreateOrderTasker(udpSendSock, WrapUnique(new API::DataPackage(order)))));
-}
-
-size_t trades = 0;
-
-class SpeedTradeDeligate : public virtual Engine::TradeDeligate {
-    void tradeExecuted(std::shared_ptr<Engine::Trade>) const
+    void tradeExecuted(std::shared_ptr<Engine::Trade>) override
     {
-        ++trades;
+        ++OrderCounter::tradesExecuted;
+        ++OrderCounter::ordersProcessed;
+        if (ordersSentCount <= OrderCounter::ordersProcessed.load()) {
+            doneCv.notify_all();
+        }
     }
+
+    void orderReceived(const std::unique_ptr<Engine::Order>& order) override
+    {
+        ++OrderCounter::ordersReceived;
+        if (ordersSentCount <= OrderCounter::ordersReceived.load()) {
+            doneCv.notify_all();
+        }
+    }
+
+    static std::atomic<size_t> tradesExecuted;
+    static std::atomic<size_t> ordersProcessed;
+    static std::atomic<size_t> ordersReceived;
 };
+std::atomic<size_t> OrderCounter::tradesExecuted = ATOMIC_VAR_INIT(0);
+std::atomic<size_t> OrderCounter::ordersProcessed = ATOMIC_VAR_INIT(0);
+std::atomic<size_t> OrderCounter::ordersReceived = ATOMIC_VAR_INIT(0);
 
 int main(int argc, char* argv[])
 {
@@ -169,7 +162,14 @@ int main(int argc, char* argv[])
         ioThread =
                 Threading::createThread<Threading::SocketPollThread>("IO");
 
+        Threading::ThreadManager::setUiThread(uiThread);
+        Threading::ThreadManager::setIoThread(ioThread);
+
         ioThread->addSocketTasker(WrapUnique(new Net::UDPSocketRecvTask));
+
+Engine::SellLedger::instance()->setDeligate(WrapUnique(new OrderCounter));
+Engine::BuyLedger::instance()->setDeligate(WrapUnique(new OrderCounter));
+Engine::Trade::addDeligate(WrapUnique(new OrderCounter));
 
         udpSendSock = static_cast<FileDescriptor>(socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP));
 
@@ -179,99 +179,87 @@ int main(int argc, char* argv[])
 
         const int broadcast = 1;
         setsockopt(udpSendSock, SOL_SOCKET, SO_BROADCAST, &broadcast, sizeof(const int));
-        //fcntl(udpSendSock, F_SETFL, O_NONBLOCK);
+        // fcntl(udpSendSock, F_SETFL, O_NONBLOCK);
 
-        const auto NUM_ORDERS = 1000000; // 5000000;
         const auto start = Clock::now();
 
-        Engine::Trade::addDeligate(WrapUnique(new SpeedTradeDeligate));
         std::ifstream orderStream;
         orderStream.open("orders.log", std::ios::in | std::ios::binary | std::ios::ate);
         std::streampos size = orderStream.tellg();
-        orderStream.seekg(0, std::ios::beg);
+        const size_t startPos = 0;
+        orderStream.seekg(startPos, std::ios::beg);
 
-std::unique_ptr<API::DataPackage> partialPackage;
+        ordersSentCount = (size_t(size) - startPos) / PACKAGE_SIZE;
+ //std::unique_ptr<API::DataPackage> partialPackage;
 
-        std::vector<unsigned char> orderData(40);
-        for (size_t i = size; i > 0;) {
-            size_t sz = i > 40 ? 40 : i;
+        std::vector<unsigned char> orderData(MAX_PACKET_SIZE);
+        for (size_t i = size; i > startPos;) {
+            size_t sz = i > MAX_PACKET_SIZE ? MAX_PACKET_SIZE : i;
             
             orderStream.read(reinterpret_cast<char *>(orderData.data()), sz);
-            //TaskSendBuffer::dataQueue.pushChunk(orderData, sz);
-            //TaskSendBuffer::scheduleForRun();
+            // while (TaskSendBuffer::dataQueue.availableSize() < sz) {
+            //     std::this_thread::sleep_for(std::chrono::microseconds(100));
+            // }
+            
+           TaskSendBuffer::dataQueue.pushChunk(orderData, sz);
+           TaskSendBuffer::scheduleForRun();
 
+// size_t consumedLength = 0;
+//             while (consumedLength < sz) {
 
-size_t consumedLength = 0;
-            while (consumedLength < sz) {
+//                 std::unique_ptr<API::DataPackage> package;
+//                 if (partialPackage) {
+//                     package = std::move(partialPackage);
+//                 } else {
+//                     package = WrapUnique(new API::DataPackage);
+//                 }
+//                 consumedLength += package->appendData(&orderData[consumedLength], sz - consumedLength);
 
-                std::unique_ptr<API::DataPackage> package;
-                if (partialPackage) {
-                    package = std::move(partialPackage);
-                } else {
-                    package = WrapUnique(new API::DataPackage);
-                }
-                consumedLength += package->appendData(&orderData[consumedLength], sz - consumedLength);
+//                 EXPECT_TRUE(package->isDone() || consumedLength == sz); // API Data Package has not consumed all the data and is not done
 
-                EXPECT_TRUE(package->isDone() || consumedLength == sz); // API Data Package has not consumed all the data and is not done
-
-                if (package->isDone()) {
-                    // TODO Send to IO thread?
-                    if (UNLIKELY(!package->quickVerify())) {
-                        goto LEAVE;
-                        continue;
-                    }
-                    uiThread->addTask(WrapUnique(new Engine::ProcessOrderTask(std::move(package))));
-                } else {
-                    partialPackage = std::move(package);
-                }
-
-
-            }
-
-
+//                 if (package->isDone()) {
+//                     // TODO Send to IO thread?
+//                     if (UNLIKELY(!package->quickVerify())) {
+//                         WARNING("QUICK VERIFY FAILED");
+//                         --ordersSentCount;
+//                         continue;
+//                     }
+//                     uiThread->addTask(WrapUnique(new Engine::ProcessOrderTask(std::move(package))));
+//                     //++ordersSentCount;
+//                 } else {
+//                     partialPackage = std::move(package);
+//                 }
+//             }
 
             i -= sz;
         }
-        LEAVE:
         orderStream.close();
 
-        // const auto NUM_ORDERS = 1000000; // 5000000;
-        // const auto start = Clock::now();
-        // for (auto i = 0; i < NUM_ORDERS; i++) {
-        //     if (i % 100000 == 1)
-        //         fprintf(stderr, "\r%.1f%% done", ((i + 1) / float(NUM_ORDERS)) * 100);
-        //     runOrder(Engine::Order(2, 5, Engine::Order::OrderType::SELL));
-        //     runOrder(Engine::Order(1, 6, Engine::Order::OrderType::BUY));
-        //     runOrder(Engine::Order(6, 9, Engine::Order::OrderType::SELL));
-        //     runOrder(Engine::Order(5, 10, Engine::Order::OrderType::BUY));
-        //     runOrder(Engine::Order(8, 7, Engine::Order::OrderType::SELL));
-        //     runOrder(Engine::Order(7, 8, Engine::Order::OrderType::BUY));
-        //     runOrder(Engine::Order(2, 5, Engine::Order::OrderType::SELL));
-        //     runOrder(Engine::Order(1, 6, Engine::Order::OrderType::BUY));
-        //     runOrder(Engine::Order(4, 3, Engine::Order::OrderType::SELL));
-        //     runOrder(Engine::Order(3, 4, Engine::Order::OrderType::BUY));
-        //     // if (i % 10 == 0)
-        //     //     write(sock, &Threading::incrementer_, sizeof(Threading::incrementer_));
-        // }
+//std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+fprintf(stderr, "SENT: %lu of %lu\n", OrderCounter::ordersReceived.load(), ordersSentCount);
+fprintf(stderr, "DataReceived: %lu, DataSent: %lu\n", Net::UDPSocketRecvTask::total_data_received_, totalDataSent);
 
+        {
+            std::mutex mux;
+            std::unique_lock<std::mutex> lock(mux);
+            //doneCv.wait(lock, [](){ return ordersSentCount <= OrderCounter::ordersReceived.load(); });
+        }
+
+fprintf(stderr, "DataReceived: %lu, DataSent: %lu\n", Net::UDPSocketRecvTask::total_data_received_, totalDataSent);
 
         const auto end = Clock::now();
         const auto timeTaken = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() / 1000 / 1000;
 
-std::this_thread::sleep_for(std::chrono::milliseconds(2000));
-
-        const auto ordersExecuted = Engine::SellLedger::processedCount() + Engine::BuyLedger::processedCount();
-
-
-        fprintf(stderr, "Trades Executed: %lu\n", trades);
-        fprintf(stderr, "Orders Executed: %lu\n", ordersExecuted);
+        fprintf(stderr, "Trades Executed: %lu\n", OrderCounter::tradesExecuted.load());
+        fprintf(stderr, "Orders Executed: %lu\n", OrderCounter::ordersProcessed.load());
+        fprintf(stderr, "Orders Received: %lu\n", OrderCounter::ordersReceived.load());
         fprintf(stderr, "Time taken: %ld milli seconds\n", timeTaken);
         if (timeTaken / 1000 > 0)
-            fprintf(stderr, "Trades per second: %lu\n", trades / (timeTaken / 1000));
+            fprintf(stderr, "Trades per second: %lu\n", OrderCounter::tradesExecuted.load() / (timeTaken / 1000));
         fprintf(stderr, "Data Sent: %.2f mb\n", float(totalDataSent) / 1000 / 1000);
-        fprintf(stderr, "Orders Per Second: %.1f\n", float(timeTaken) / ordersExecuted);
-        if ((timeTaken / 1000) / 1000 / 1000 > 0)
-            fprintf(stderr, "Bytes Per Second: %.1f mbps\n", float(totalDataSent) / (timeTaken / 1000) / 1000 / 1000);
+        fprintf(stderr, "Orders Per Second: %lu\n", OrderCounter::ordersProcessed.load() * 1000 / timeTaken);
+        if ((float(timeTaken) / 1000) / 1000 / 1000 > 0)
+            fprintf(stderr, "Bytes Per Second: %.1f mbps\n", float(totalDataSent) / (float(timeTaken) / 1000) / 1000 / 1000);
         fprintf(stderr, "ACCUM_TIME: %lu ms\n", PROFILER_ACCUM / 1000 / 1000);
 
         //signal(SIGINT, signalHandler);
@@ -286,6 +274,7 @@ std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
         // Engine::SellLedger::reset();
         // Engine::BuyLedger::reset();
+        // Engine::Trade::removeDeligatesForTest();
     }
     DEBUG("Exiting main function");
     return 0;

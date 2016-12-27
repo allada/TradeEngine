@@ -36,11 +36,6 @@ void SocketPollThread::addSocketTasker(std::unique_ptr<SocketTasker> socketTaske
     file_descriptor_tasker_map_.emplace(static_cast<FileDescriptor>(ev.data.fd), std::move(socketTasker));
 }
 
-void SocketPollThread::addTask(std::unique_ptr<Tasker> task)
-{
-    cross_thread_task_runner_adder_(std::move(task));
-}
-
 void SocketPollThread::kill()
 {
     if (id() == thisThreadId()) {
@@ -114,6 +109,7 @@ void SocketPollThread::handleEvent_(epoll_event event)
         return;
     }
     file_descriptor_tasker_map_.at(fd)->run();
+
 }
 
 void SocketPollThread::sendSignal(Signals signal)

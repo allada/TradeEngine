@@ -47,12 +47,12 @@ void ThreadManager::setSelfThreadName_(const std::string& name)
     selfThreadName = name;
 }
 
-void setIoThread(std::shared_ptr<SocketPollThread> thread)
+void ThreadManager::setIoThread(std::shared_ptr<SocketPollThread> thread)
 {
     ioThreadLocal_ = thread;
 }
 
-void setUiThread(std::shared_ptr<TaskQueueThread> thread)
+void ThreadManager::setUiThread(std::shared_ptr<TaskQueueThread> thread)
 {
     uiThreadLocal_ = thread;
 }

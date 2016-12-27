@@ -10,10 +10,15 @@ typedef int FileDescriptor;
 #include <chrono>
 extern size_t PROFILER_ACCUM;
 
+#define PROFILE_START_() \
+    auto _temp_profiler_start_time = std::chrono::high_resolution_clock::now();
+#define PROFILE_END_() \
+    PROFILER_ACCUM += std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - _temp_profiler_start_time).count();
+
 #define PROFILE_START() \
-    { auto _temp_profiler_start_time = std::chrono::high_resolution_clock::now();
+    { PROFILE_START_()
 #define PROFILE_END() \
-    PROFILER_ACCUM += std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - _temp_profiler_start_time).count(); }
+    PROFILE_END() }
 
 #define STATIC_ONLY(Type) \
     private:              \
@@ -251,19 +256,19 @@ static const char* fmt(T)
     }
 
     #ifndef EXPECT_GT
-        #define EXPECT_GT(v1, v2) if (v1 < v2) { WARNING(CHAR_TO_STRING_("EXPECT FAIL ", ::fmt(v1), " > ", ::fmt(v2), " in %s:%d"), v1, v2, __FILE__, __LINE__); }
+        #define EXPECT_GT(v1, v2) if ((v1) < (v2)) { WARNING(CHAR_TO_STRING_("EXPECT FAIL ", ::fmt(v1), " > ", ::fmt(v2), " in %s:%d"), v1, v2, __FILE__, __LINE__); }
     #endif
     #ifndef EXPECT_EQ
-        #define EXPECT_EQ(v1, v2) if (v1 != v2) { WARNING(CHAR_TO_STRING_("EXPECT FAIL ", ::fmt(v1), " == ", ::fmt(v2), " in %s:%d"), v1, v2, __FILE__, __LINE__); }
+        #define EXPECT_EQ(v1, v2) if ((v1) != (v2)) { WARNING(CHAR_TO_STRING_("EXPECT FAIL ", ::fmt(v1), " == ", ::fmt(v2), " in %s:%d"), v1, v2, __FILE__, __LINE__); }
     #endif
     #ifndef EXPECT_NE
-        #define EXPECT_NE(v1, v2) if (v1 == v2) { WARNING(CHAR_TO_STRING_("EXPECT FAIL ", ::fmt(v1), " != ", ::fmt(v2), " in %s:%d"), v1, v2, __FILE__, __LINE__); }
+        #define EXPECT_NE(v1, v2) if ((v1) == (v2)) { WARNING(CHAR_TO_STRING_("EXPECT FAIL ", ::fmt(v1), " != ", ::fmt(v2), " in %s:%d"), v1, v2, __FILE__, __LINE__); }
     #endif
     #ifndef EXPECT_TRUE
         #define EXPECT_TRUE(v) if (!(v)) { WARNING("EXPECT TRUE in %s:%d", __FILE__, __LINE__); }
     #endif
     #ifndef EXPECT_FALSE
-        #define EXPECT_FALSE(v) if (v) { WARNING("EXPECT FAIL in %s:%d", __FILE__, __LINE__); }
+        #define EXPECT_FALSE(v) if ((v)) { WARNING("EXPECT FAIL in %s:%d", __FILE__, __LINE__); }
     #endif
 #endif
 

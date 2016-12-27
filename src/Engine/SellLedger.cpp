@@ -3,14 +3,15 @@
 #include <Judy.h>
 #include <queue>
 #include "Trade.h"
+#include "BuyLedger.h"
 
 using namespace Engine;
 
 // Lowest price.
 static Order::price_t tipPrice_ = std::numeric_limits<Order::price_t>::max();
-static uint64_t count_ = 0;
-static uint64_t processedCount_ = 0;
 static Pvoid_t PJLArray = (Pvoid_t) NULL;
+
+SellLedger* SellLedger::instance_ = nullptr;
 
 typedef std::queue<Order*> QueueOrders;
 
@@ -53,7 +54,7 @@ std::unique_ptr<Order> SellLedger::tipOrder()
         JLD(return_code, PJLArray, index);
         EXPECT_EQ(return_code, 1);
     }
-    DEBUG("Sell Order Removed {qty: %llu, price: %llu, newTip: %llu}", returnOrder->qty(), returnOrder->price(), tipPrice_);
+    // DEBUG("Sell Order Removed {qty: %llu, price: %llu, newTip: %llu}", returnOrder->qty(), returnOrder->price(), tipPrice_);
     return returnOrder;
 }
 
@@ -67,18 +68,19 @@ uint64_t SellLedger::count()
     return count_;
 }
 
-uint64_t SellLedger::processedCount()
+void SellLedger::handleOrder(std::unique_ptr<Order> order)
 {
-    return processedCount_;
+    EXPECT_NE(deligate_.get(), nullptr);
+    deligate_->orderReceived(order);
+    addOrder(std::move(order));
 }
 
 void SellLedger::addOrder(std::unique_ptr<Order> order)
 {
-    ++processedCount_;
     Order::price_t sellPrice = order->price();
-    Order::price_t lastBuyPrice = BuyLedger::tipPrice();
-    if (lastBuyPrice >= sellPrice && BuyLedger::count() > 0) {
-        std::unique_ptr<Order> buyOrder = BuyLedger::tipOrder();
+    Order::price_t lastBuyPrice = BuyLedger::instance()->tipPrice();
+    if (lastBuyPrice >= sellPrice && BuyLedger::instance()->count() > 0) {
+        std::unique_ptr<Order> buyOrder = BuyLedger::instance()->tipOrder();
         EXPECT_EQ(lastBuyPrice, buyOrder->price());
         Trade::execute(std::move(buyOrder), std::move(order), Order::OrderType::SELL);
         return;
@@ -94,14 +96,19 @@ void SellLedger::addOrder(std::unique_ptr<Order> order)
         EXPECT_NE(pointer, PJERR);
         *pointer = new QueueOrders;
     }
-    DEBUG("Sell Order Added {qty: %llu, price: %llu}", order->qty(), order->price());
-    (*pointer)->push(order.release());
+    // DEBUG("Sell Order Added {qty: %16llu, price: %16llu}", order->qty(), order->price());
+    Order* ledgerOrder = order.release();
+    (*pointer)->push(ledgerOrder);
     ++count_;
+
+    EXPECT_NE(deligate_.get(), nullptr);
+    deligate_->addedToLedger(const_cast<Order &>(*ledgerOrder));
 }
 
 void SellLedger::reset()
 {
     size_t i = 0;
+    count_ = 0;
     QueueOrders** orderQueue = reinterpret_cast<QueueOrders**>(JudyLFirst(PJLArray, &i, PJE0));
     while (orderQueue != NULL) {
         while (!(*orderQueue)->empty()) {
@@ -110,8 +117,9 @@ void SellLedger::reset()
             delete order;
         }
         delete *orderQueue;
-        //JudyLDel(&PJLArray, i);
         orderQueue = reinterpret_cast<QueueOrders**>(JudyLNext(PJLArray, &i, PJE0));
     }
     JudyLFreeArray(&PJLArray, PJE0);
+    PJLArray = (Pvoid_t) NULL;
+    deligate_ = nullptr;
 }
