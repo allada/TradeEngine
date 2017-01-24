@@ -17,6 +17,7 @@ typedef std::queue<Order*> QueueOrders;
 
 std::unique_ptr<Order> SellLedger::tipOrder()
 {
+    EXPECT_UI_THREAD();
     QueueOrders* orderQueue;
     Word_t index = 0;
     {
@@ -60,16 +61,19 @@ std::unique_ptr<Order> SellLedger::tipOrder()
 
 Order::price_t SellLedger::tipPrice()
 {
+    EXPECT_UI_THREAD();
     return tipPrice_;
 }
 
 uint64_t SellLedger::count()
 {
+    EXPECT_UI_THREAD();
     return count_;
 }
 
 void SellLedger::handleOrder(std::unique_ptr<Order> order)
 {
+    EXPECT_UI_THREAD();
     EXPECT_NE(deligate_.get(), nullptr);
     deligate_->orderReceived(order);
     addOrder(std::move(order));
@@ -77,12 +81,13 @@ void SellLedger::handleOrder(std::unique_ptr<Order> order)
 
 void SellLedger::addOrder(std::unique_ptr<Order> order)
 {
+    EXPECT_UI_THREAD();
     Order::price_t sellPrice = order->price();
     Order::price_t lastBuyPrice = BuyLedger::instance()->tipPrice();
     if (lastBuyPrice >= sellPrice && BuyLedger::instance()->count() > 0) {
         std::unique_ptr<Order> buyOrder = BuyLedger::instance()->tipOrder();
         EXPECT_EQ(lastBuyPrice, buyOrder->price());
-        Trade::execute(std::move(buyOrder), std::move(order), Order::OrderType::SELL);
+        Trade::execute(std::move(buyOrder), std::move(order), Order::side_t::SELL);
         return;
     }
 
@@ -107,6 +112,7 @@ void SellLedger::addOrder(std::unique_ptr<Order> order)
 
 void SellLedger::reset()
 {
+    EXPECT_UI_THREAD();
     size_t i = 0;
     count_ = 0;
     QueueOrders** orderQueue = reinterpret_cast<QueueOrders**>(JudyLFirst(PJLArray, &i, PJE0));

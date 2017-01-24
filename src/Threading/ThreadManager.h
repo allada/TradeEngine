@@ -13,15 +13,15 @@
 
 namespace Threading {
 
-static inline std::shared_ptr<SocketPollThread> ioThread();
-static inline std::shared_ptr<TaskQueueThread> uiThread();
+inline static std::shared_ptr<SocketPollThread> ioThread();
+inline static std::shared_ptr<TaskQueueThread> uiThread();
 
-static inline std::unordered_map<ThreadId, std::shared_ptr<Threader>>& activeThreads_();
-static inline std::mutex& threadManagerMux_();
-static inline void setSelfThread_(std::shared_ptr<Threader>);
-static inline void setSelfThreadName_(const std::string& name);
-static inline std::condition_variable& threadCountChangeCV_();
-static inline std::unordered_set<std::shared_ptr<Threader>>& staleThreads_();
+inline static std::unordered_map<ThreadId, std::shared_ptr<Threader>>& activeThreads_();
+inline static std::mutex& threadManagerMux_();
+inline static void setSelfThread_(std::shared_ptr<Threader>);
+inline static void setSelfThreadName_(const std::string& name);
+inline static std::condition_variable& threadCountChangeCV_();
+inline static std::unordered_set<std::shared_ptr<Threader>>& staleThreads_();
 
 struct ThreadManager {
     STATIC_ONLY(ThreadManager)
@@ -40,7 +40,7 @@ public:
 
     static void untrackThread(std::shared_ptr<Threader>);
 
-    static int activeThreadsCount()
+    inline static int activeThreadsCount()
     {
         std::lock_guard<std::mutex> messanger_lock(threadManagerMux_());
         return activeThreads_().size();
@@ -70,42 +70,42 @@ private:
     static void setSelfThreadName_(const std::string& name);
 };
 
-static inline std::shared_ptr<SocketPollThread> ioThread()
+inline static std::shared_ptr<SocketPollThread> ioThread()
 {
     return ThreadManager::ioThread_();
 }
 
-static inline std::shared_ptr<TaskQueueThread> uiThread()
+inline static std::shared_ptr<TaskQueueThread> uiThread()
 {
     return ThreadManager::uiThread_();
 }
 
-static inline std::mutex& threadManagerMux_()
+inline static std::mutex& threadManagerMux_()
 {
     return ThreadManager::threadManagerMux_();
 }
 
-static inline std::condition_variable& threadCountChangeCV_()
+inline static std::condition_variable& threadCountChangeCV_()
 {
     return ThreadManager::threadCountChangeCV_();
 }
 
-static inline void setSelfThread_(std::shared_ptr<Threader> thread)
+inline static void setSelfThread_(std::shared_ptr<Threader> thread)
 {
     return ThreadManager::setSelfThread_(thread);
 }
 
-static inline void setSelfThreadName_(const std::string& name)
+inline static void setSelfThreadName_(const std::string& name)
 {
     ThreadManager::setSelfThreadName_(name);
 }
 
-static inline std::unordered_set<std::shared_ptr<Threader>>& staleThreads_()
+inline static std::unordered_set<std::shared_ptr<Threader>>& staleThreads_()
 {
     return ThreadManager::staleThreads_();
 }
 
-static inline std::unordered_map<ThreadId, std::shared_ptr<Threader>>& activeThreads_()
+inline static std::unordered_map<ThreadId, std::shared_ptr<Threader>>& activeThreads_()
 {
     return ThreadManager::activeThreads_();
 }

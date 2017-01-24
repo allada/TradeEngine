@@ -23,7 +23,7 @@
 #include <errno.h>
 #include <fstream>
 #include <iostream>
-#include "Engine/ProcessOrderTask.h"
+//#include "Engine/ProcessOrderTask.h"
 
 std::shared_ptr<Threading::MainThread> mainThread;
 typedef std::chrono::high_resolution_clock Clock;
@@ -39,7 +39,9 @@ void signalHandler(int signal)
 
 uint64_t totalDataSent = 0;
 
-#define MAX_PACKET_SIZE ((65507lu / PACKAGE_SIZE) * PACKAGE_SIZE)
+#define PACKAGE_SIZE 36
+
+#define MAX_PACKET_SIZE 65490
 
 struct sockaddr_in servAddr_;
 FileDescriptor udpSendSock;
@@ -61,15 +63,15 @@ public:
             if (bufferSize < PACKAGE_SIZE) {
                 break;
             }
-            size_t chunkSize = (std::min(bufferSize, MAX_PACKET_SIZE) / PACKAGE_SIZE) * PACKAGE_SIZE;
+            size_t chunkSize = MAX_PACKET_SIZE; //(std::min(bufferSize, MAX_PACKET_SIZE) / PACKAGE_SIZE) * PACKAGE_SIZE;
             EXPECT_GT(MAX_PACKET_SIZE + 1, chunkSize);
-            EXPECT_EQ(chunkSize % PACKAGE_SIZE, 0);
+            //EXPECT_EQ(chunkSize % PACKAGE_SIZE, 0);
             
             TaskSendBuffer::dataQueue.popChunk(chunk, chunkSize);
 
             for (size_t i = 0; i < chunkSize; ) {
 
-std::this_thread::sleep_for(std::chrono::microseconds(10));
+std::this_thread::sleep_for(std::chrono::microseconds(1100));
                 //std::this_thread::sleep_for(std::chrono::microseconds(700));
                 //std::this_thread::sleep_for(std::chrono::microseconds(1233));
                 //std::this_thread::sleep_for(std::chrono::microseconds(2033));
@@ -94,7 +96,7 @@ std::this_thread::sleep_for(std::chrono::microseconds(10));
         isRunning.clear(std::memory_order_release);
     }
 
-    static inline void scheduleForRun()
+    static void scheduleForRun()
     {
 
         if (!isRunning.test_and_set(std::memory_order_acquire)) {
@@ -189,7 +191,7 @@ Engine::Trade::addDeligate(WrapUnique(new OrderCounter));
         const size_t startPos = 0;
         orderStream.seekg(startPos, std::ios::beg);
 
-        ordersSentCount = (size_t(size) - startPos) / PACKAGE_SIZE;
+        ordersSentCount = (size_t(size) - (size_t(size) / MAX_PACKET_SIZE * 6)) / PACKAGE_SIZE;
  //std::unique_ptr<API::DataPackage> partialPackage;
 
         std::vector<unsigned char> orderData(MAX_PACKET_SIZE);
@@ -235,14 +237,13 @@ Engine::Trade::addDeligate(WrapUnique(new OrderCounter));
         }
         orderStream.close();
 
-//std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 fprintf(stderr, "SENT: %lu of %lu\n", OrderCounter::ordersReceived.load(), ordersSentCount);
 fprintf(stderr, "DataReceived: %lu, DataSent: %lu\n", Net::UDPSocketRecvTask::total_data_received_, totalDataSent);
 
         {
             std::mutex mux;
             std::unique_lock<std::mutex> lock(mux);
-            //doneCv.wait(lock, [](){ return ordersSentCount <= OrderCounter::ordersReceived.load(); });
+            doneCv.wait(lock, [](){ return ordersSentCount <= OrderCounter::ordersReceived.load(); });
         }
 
 fprintf(stderr, "DataReceived: %lu, DataSent: %lu\n", Net::UDPSocketRecvTask::total_data_received_, totalDataSent);

@@ -9,5 +9,5 @@ if [ "$RUN_BASH" = "1" ]; then
 elif [ "$RUN_TESTS" = "1" ]; then
     cmake .; make TradeEngine_test && echo && $PARENT_PROGRAM ctest -VV;
 else
-    cmake .; make trader && echo && $PARENT_PROGRAM ./trader BTC;
+    cmake .; make trader && echo && $PARENT_PROGRAM ./bin/trader BTC;
 fi

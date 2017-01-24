@@ -2,6 +2,8 @@ cmake_minimum_required (VERSION 2.6)
 set(CMAKE_C_COMPILER                  "/usr/bin/clang-3.8")
 set(CMAKE_CXX_COMPILER                "/usr/bin/clang++-3.8")
 
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
 project (TradeEngine)
 
 if("$ENV{DEBUG_OUTPUT}" STREQUAL "1")
@@ -30,6 +32,7 @@ set(
         src/Threading/Thread.h
         src/Threading/Threader.h
         src/Threading/Tasker.h
+        src/Threading/TaskerGroup.h
         src/Threading/MainThread.h
         src/Threading/ThreadManager.h
         src/Threading/TaskQueue.h
@@ -40,15 +43,17 @@ set(
         src/includes/MemoryAllocator.h
 
         src/API/DataPackage.h
+        src/API/DataPackageType.h
+        src/API/CreateOrderPackage.h
         src/API/StreamDispatcher.h
 
         src/Net/UDPSocketRecvTask.h
 
+        src/Engine/CreateOrderTask.h
         src/Engine/BuyLedger.h
         src/Engine/Order.h
         src/Engine/SellLedger.h
         src/Engine/Trade.h
-        src/Engine/ProcessOrderTask.h
         src/Engine/Ledger.h
 )
 
@@ -61,6 +66,8 @@ set(
         src/Threading/SocketPollThread.cpp
 
         src/includes/MemoryAllocator.cpp
+
+        src/API/DataPackage.cpp
 
         src/Net/UDPSocketRecvTask.cpp
 
@@ -89,5 +96,5 @@ target_link_libraries(${PROJECT_TEST_NAME}
 
 target_link_libraries(${PROJECT_TEST_NAME} ${CMAKE_THREAD_LIBS_INIT})
 target_compile_definitions(${PROJECT_TEST_NAME} PUBLIC -DIS_TEST)
-add_test(test1 ${PROJECT_TEST_NAME})
+add_test(test1 bin/${PROJECT_TEST_NAME})
 target_link_libraries(${PROJECT_TEST_NAME} pthread Judy)

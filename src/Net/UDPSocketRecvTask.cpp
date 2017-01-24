@@ -1,7 +1,7 @@
 #include "UDPSocketRecvTask.h"
 
 #include "../Threading/TaskQueueThread.h"
-#include "../Engine/ProcessOrderTask.h"
+//#include "../Engine/ProcessOrderTask.h"
 #include <sys/socket.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -25,13 +25,14 @@ UDPSocketRecvTask::UDPSocketRecvTask(std::unique_ptr<API::StreamDispatcher> disp
     DEBUG("UDP Socket %d Sniffing", socket_);
 }
 
-inline API::StreamDispatcher::Hash hashAddr(const struct sockaddr_in& addr)
+API::StreamDispatcher::Hash hashAddr(const struct sockaddr_in& addr)
 {
     return API::StreamDispatcher::hash(&addr.sin_port, sizeof(addr.sin_port), API::StreamDispatcher::hash(&addr.sin_addr.s_addr, sizeof(addr.sin_addr.s_addr)));
 }
 
 void UDPSocketRecvTask::run()
 {
+    EXPECT_IO_THREAD();
     std::vector<unsigned char, ::FastAllocator<unsigned char>> buff(MAX_BUFF_SIZE);
     //IFVALGRIND(memset(&buff, '\0', MAX_BUFF_SIZE));
     struct sockaddr_in remoteAddr;

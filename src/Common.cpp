@@ -1,12 +1,13 @@
 #include "Common.h"
+#include "Threading/ThreadManager.h"
 
-extern size_t PROFILER_ACCUM = 0;
+size_t PROFILER_ACCUM = 0;
 
 #ifdef TERMINAL_COLOR
     #include "Threading/Threader.h"
     #include <unordered_map>
 
-    static inline const std::string resetColor()
+    static const std::string resetColor()
     {
         return "\033[0;" + std::to_string(TerminalColor::DEFAULT) + 'm';
     }
@@ -64,3 +65,12 @@ template<> const char* fmtLookupTable<void*>()
 {
     return "%p";
 }
+#if IS_DEBUG || defined(IS_TEST)
+    bool isIoThread() {
+        return Threading::ioThread().get() == Threading::ThreadManager::thisThread().get();
+    }
+
+    bool isUiThread() {
+        return Threading::uiThread().get() == Threading::ThreadManager::thisThread().get();
+    }
+#endif

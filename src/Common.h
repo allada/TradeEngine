@@ -30,7 +30,7 @@ extern size_t PROFILER_ACCUM;
     public:
 
 template <typename T>
-inline std::unique_ptr<T> WrapUnique(T* ptr) {
+std::unique_ptr<T> WrapUnique(T* ptr) {
   return std::unique_ptr<T>(ptr);
 }
 
@@ -89,7 +89,7 @@ using Closure = std::function<void()>;
     #include <cxxabi.h>
 
     /** Print a demangled stack backtrace of the caller function to FILE* out. */
-    static inline void print_stacktrace(FILE *out = stderr, unsigned int max_frames = 63)
+    inline static void print_stacktrace(FILE *out = stderr, unsigned int max_frames = 63)
     {
         fprintf(out, "stack trace:\n");
 
@@ -207,10 +207,10 @@ using Closure = std::function<void()>;
     #define VIRTUAL_FOR_TEST
 #endif
 
-template<typename L> const char* fmtLookupTable() { return "%p"; };
+template<typename L> inline const char* fmtLookupTable() { return "%p"; };
 
 template<typename T>
-static const char* fmt(T)
+inline static const char* fmt(T)
 {
     return fmtLookupTable<typename std::decay<T>::type>();
 }
@@ -239,6 +239,10 @@ static const char* fmt(T)
     #ifndef EXPECT_FALSE
         #define EXPECT_FALSE(...)
     #endif
+
+    #define EXPECT_MAIN_THREAD()
+    #define EXPECT_IO_THREAD()
+    #define EXPECT_UI_THREAD()
 #else
     #ifndef WARNING
         #define WARNING(...)
@@ -270,9 +274,14 @@ static const char* fmt(T)
     #ifndef EXPECT_FALSE
         #define EXPECT_FALSE(v) if ((v)) { WARNING("EXPECT FAIL in %s:%d", __FILE__, __LINE__); }
     #endif
-#endif
 
-#define EXPECT_MAIN_THREAD() EXPECT_EQ(static_cast<int>(std::hash<std::thread::id>()(::Threading::ThreadManager::mainThreadId())), static_cast<int>(std::hash<std::thread::id>()(::Threading::ThreadManager::thisThreadId())))
+    #define EXPECT_MAIN_THREAD() EXPECT_EQ(static_cast<int>(std::hash<std::thread::id>()(::Threading::ThreadManager::mainThreadId())), static_cast<int>(std::hash<std::thread::id>()(::Threading::ThreadManager::thisThreadId())))
+    bool isIoThread();
+    bool isUiThread();
+    #define EXPECT_IO_THREAD() if (!isIoThread()) { EXPECT_TRUE(false); WARNING("Expected IO Thread"); }
+    #define EXPECT_UI_THREAD() if (!isUiThread()) { EXPECT_TRUE(false); WARNING("Expected UI Thread"); }
+
+#endif
 
 #include "includes/MemoryAllocator.h"
 

@@ -47,7 +47,7 @@ void SocketPollThread::kill()
     }
 }
 
-inline int checkEpollWaitResult(int result)
+int checkEpollWaitResult(int result)
 {
     switch (result) {
     case EBADF:
