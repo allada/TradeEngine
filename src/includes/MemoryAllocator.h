@@ -8,32 +8,62 @@
 
 // 2MB sized pages because most architectures/os's page memory in this size. This allows
 // us to free() quickly.
-static constexpr size_t BUCKET_SIZES = (1 << 21);
+static constexpr size_t SHIFT_BITS = 21;
+static constexpr size_t BUCKET_SIZE = (1 << SHIFT_BITS);
+static constexpr size_t BUCKET_MASK = BUCKET_SIZE - 1;
 
 struct MemoryBucket {
 public:
     template <typename T>
     static T* nextPtr(size_t sz)
     {
-        EXPECT_GT(BUCKET_SIZES, sz);
+        EXPECT_GT(BUCKET_SIZE, sz);
+        // Must always be even.
+        if ((sz & 1) == 1) {
+            sz += 1;
+        }
         MemoryBucket* bucket = tipBucket_;
-        sz += sizeof(MemoryBucket*);
         bucket->used_count_.fetch_add(1);
-        size_t index = bucket->next_ptr_.fetch_add(sz);
-        if (UNLIKELY(index + sz >= BUCKET_SIZES)) {
+        // uintptr_t beginPtr = reinterpret_cast<uintptr_t>(bucket->items_.data());
+        uintptr_t basePtr = bucket->begin_ptr_;
+        size_t used_bytes = bucket->bytes_used_.fetch_add(sz);
+        if (UNLIKELY(used_bytes + sz >= BUCKET_SIZE)) {
             tryNewBucket_(sz);
             return nextPtr<T>(sz);
         }
-        return reinterpret_cast<ItemWrapper<T>*>(&(bucket->items_[index]))->ptr(bucket);
+        uintptr_t endPtr = reinterpret_cast<uintptr_t>(bucket->items_.data()) + BUCKET_SIZE;
+        uintptr_t desiredPtr = basePtr + used_bytes;
+        if (desiredPtr + sz >= endPtr && !bucket->is_over_fence_) {
+            {
+                std::lock_guard<std::mutex> lock(bucket->over_fence_mux_);
+                // Make sure we do not set it wtice because of timing with lock.
+                if (!bucket->is_over_fence_) {
+                    bucket->bytes_used_.fetch_add(1);
+                    bucket->is_over_fence_ = true;
+                }
+            }
+            bucket->used_count_.fetch_sub(1);
+            return nextPtr<T>(sz);
+        }
+        if (desiredPtr + sz > endPtr && desiredPtr < endPtr) {
+            // Run again. We are on a fence post.
+            bucket->used_count_.fetch_sub(1);
+            return nextPtr<T>(sz);
+        }
+        if (desiredPtr + sz >= endPtr) {
+            return reinterpret_cast<T*>(desiredPtr - BUCKET_SIZE);
+        }
+
+        return reinterpret_cast<T*>(desiredPtr);
     }
 
     template <typename T>
     static void freePtr(void* ptr)
     {
-        MemoryBucket* bucket = reinterpret_cast<ItemWrapper<T>*>(reinterpret_cast<ssize_t>(ptr) - sizeof(MemoryBucket*))->bucket();
+        MemoryBucket* bucket = *memoryBucketPointerFromPointer(ptr);
         size_t usedCount = bucket->used_count_.fetch_sub(1) - 1;
         EXPECT_GT(usedCount + 1, 0);
-        if (UNLIKELY(usedCount == 0 && MemoryBucket::tipBucket_ != bucket)) {
+        if (UNLIKELY(usedCount == 0 && tipBucket_ != bucket)) {
             delete bucket;
         }
     }
@@ -53,22 +83,28 @@ public:
     }
 
 private:
-    template <typename T>
-    class ItemWrapper {
-    private:
-        MemoryBucket* bucket_;
-        // This is up top to show that item_ must be the first item in the struct because of the offset.
-        // We also use uint8_t because we don't want to initialize the object/struct.
-        uint8_t item_;
+    MemoryBucket()
+    {
+        MemoryBucket** bucketPtr = memoryBucketPointerFromPointer(items_.data());
+        *bucketPtr = this;
+        begin_ptr_ = reinterpret_cast<uintptr_t>(bucketPtr);
+        // Offset by 1 to tell memoryBucketPointerFromPointer that it should go to right not left.
+        bytes_used_ = sizeof(MemoryBucket*) + 1;
+    }
 
-    public:
-        MemoryBucket* bucket() { return bucket_; }
-        T* ptr(MemoryBucket* bucket)
-        {
-            bucket_ = bucket;
-            return reinterpret_cast<T*>(&item_);
+    inline static MemoryBucket** memoryBucketPointerFromPointer(void* ptr) {
+        return memoryBucketPointerFromPointer(reinterpret_cast<uintptr_t>(ptr));
+    }
+
+    inline static MemoryBucket** memoryBucketPointerFromPointer(uintptr_t ptr)
+    {
+        // TODO check even ptr problems.
+        if ((ptr & 1) == 0) {
+            return reinterpret_cast<MemoryBucket**>((ptr & ~BUCKET_MASK) + BUCKET_SIZE);
+        } else {
+            return reinterpret_cast<MemoryBucket**>((ptr & ~BUCKET_MASK));
         }
-    };
+    }
 
     // This function tries is designed to create a new bucket, but there's a rare case
     // where two threads may compete for eachother in creating a new bucket, causing both
@@ -79,20 +115,28 @@ private:
         std::lock_guard<std::mutex> lock(newAllocatorMux_);
         // We do another check here because between this function and the call point there may already
         // be a new bucket assigned. This will ensure we do not create a new bucket in such case.
-        if (MemoryBucket::tipBucket_->next_ptr_.load() + lastRequestSize >= BUCKET_SIZES) {
-            MemoryBucket* previousTipBucket = MemoryBucket::tipBucket_;
-            MemoryBucket::tipBucket_ = new MemoryBucket;
-            // We do this here because it needs to be increased by 1 before we get into this function
-            // for speed and race condition reasons we do not do it in this function.
-            if (UNLIKELY(previousTipBucket->used_count_.fetch_sub(1) - 1 == 0)) {
-                delete previousTipBucket;
-            }
+        if (tipBucket_->bytes_used_.load() + lastRequestSize < BUCKET_SIZE)
+            return;
+        MemoryBucket* previousTipBucket = tipBucket_;
+        tipBucket_ = new MemoryBucket;
+        // We do this here because it needs to be increased by 1 before we get into this function
+        // for speed and race condition reasons we do not do it in this function.
+        if (UNLIKELY(previousTipBucket->used_count_.fetch_sub(1) - 1 == 0)) {
+            delete previousTipBucket;
         }
     }
 
-    std::atomic<uint32_t> used_count_ = ATOMIC_VAR_INIT(0);
-    std::atomic<uint32_t> next_ptr_ = ATOMIC_VAR_INIT(0);
-    std::array<uint8_t, BUCKET_SIZES> items_;
+    // Very important to have this first to make sure we are on an even pointer.
+    std::array<uint8_t, BUCKET_SIZE> items_;
+
+    uintptr_t begin_ptr_;
+
+    std::atomic<int32_t> bytes_used_ = ATOMIC_VAR_INIT(0);
+    std::atomic<int32_t> used_count_ = ATOMIC_VAR_INIT(0);
+    bool is_over_fence_ = false;
+    std::mutex over_fence_mux_;
+
+    // std::atomic<uint32_t> next_ptr_ = ATOMIC_VAR_INIT(0);
 
     static MemoryBucket* tipBucket_;
     static std::mutex newAllocatorMux_;
