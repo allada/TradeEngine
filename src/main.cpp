@@ -71,7 +71,8 @@ public:
 
             for (size_t i = 0; i < chunkSize; ) {
 
-std::this_thread::sleep_for(std::chrono::microseconds(1100));
+                
+std::this_thread::sleep_for(std::chrono::microseconds(5000));
                 //std::this_thread::sleep_for(std::chrono::microseconds(700));
                 //std::this_thread::sleep_for(std::chrono::microseconds(1233));
                 //std::this_thread::sleep_for(std::chrono::microseconds(2033));
