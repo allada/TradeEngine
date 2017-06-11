@@ -40,7 +40,6 @@ set(
         src/Common.h
 
         src/includes/crc32.h
-        src/includes/MemoryAllocator.h
 
         src/API/DataPackage.h
         src/API/DataPackageType.h
@@ -64,8 +63,6 @@ set(
         src/Threading/Threader.cpp
         src/Threading/ThreadManager.cpp
         src/Threading/SocketPollThread.cpp
-
-        src/includes/MemoryAllocator.cpp
 
         src/API/DataPackage.cpp
 

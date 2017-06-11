@@ -25,7 +25,7 @@ public:
         std::array<unsigned char, 16> data_;
 
     };
-    // typedef uint8_t order_id_t[16];
+
     typedef uint64_t qty_t;
     typedef uint64_t price_t;
     struct flags_t {

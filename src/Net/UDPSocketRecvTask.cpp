@@ -1,7 +1,6 @@
 #include "UDPSocketRecvTask.h"
 
 #include "../Threading/TaskQueueThread.h"
-//#include "../Engine/ProcessOrderTask.h"
 #include <sys/socket.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -33,13 +32,11 @@ API::StreamDispatcher::Hash hashAddr(const struct sockaddr_in& addr)
 void UDPSocketRecvTask::run()
 {
     EXPECT_IO_THREAD();
-    std::vector<unsigned char, ::FastAllocator<unsigned char>> buff(MAX_BUFF_SIZE);
-    //IFVALGRIND(memset(&buff, '\0', MAX_BUFF_SIZE));
+    // TODO Maybe fast allocator here?
+    std::vector<unsigned char> buff(MAX_BUFF_SIZE);
     struct sockaddr_in remoteAddr;
-    IFVALGRIND(memset((char *) &remoteAddr, 0, sizeof(remoteAddr)));
     socklen_t addrLen = sizeof(remoteAddr);
     for (;;) {
-
         ssize_t len = recvfrom(socket_, buff.data(), MAX_BUFF_SIZE, 0, (struct sockaddr *) &remoteAddr, &addrLen);
         if (len == -1) {
             if (errno == EAGAIN || errno == EWOULDBLOCK) {

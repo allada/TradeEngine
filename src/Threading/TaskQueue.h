@@ -4,6 +4,7 @@
 #include <mutex>
 #include <vector>
 #include <iterator>
+#include <atomic>
 #include "../Common.h"
 
 namespace Threading {
@@ -111,7 +112,7 @@ public:
     template <class ITERATOR_TYPE>
     inline void popChunk(ITERATOR_TYPE& output, size_t count)
     {
-        if (UNLIKELY(!count)) {
+        if (!count) {
             return;
         }
         size_t endPoint = ACTUAL_ARRAY_SIZE;

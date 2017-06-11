@@ -17,6 +17,5 @@ int main(int argc, char **argv) {
     Engine::SellLedger::instance()->reset();
     Engine::BuyLedger::instance()->reset();
     Engine::Trade::removeDeligatesForTest();
-    MemoryBucket::terminate();
     return result;
 }

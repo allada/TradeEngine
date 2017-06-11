@@ -215,9 +215,6 @@ inline static const char* fmt(T)
     return fmtLookupTable<typename std::decay<T>::type>();
 }
 
-#define UNLIKELY(x) __builtin_expect(!!(x), 0)
-#define LIKELY(x) __builtin_expect(!!(x), 1)
-
 #if !IS_DEBUG || defined(IS_TEST)
     #ifndef WARNING
         #define WARNING(...)
@@ -282,7 +279,5 @@ inline static const char* fmt(T)
     #define EXPECT_UI_THREAD() if (!isUiThread()) { EXPECT_TRUE(false); WARNING("Expected UI Thread"); }
 
 #endif
-
-#include "includes/MemoryAllocator.h"
 
 #endif /* Common_h */

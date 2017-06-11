@@ -10,15 +10,9 @@
 namespace API {
 
 class DataPackage {
-    FAST_ALLOCATE(DataPackage)
 public:
     static constexpr auto HEADER_SIZE = 6;
     static constexpr auto ACTIVE_PROTOCOL_VERSION = 1;
-
-    // enum class NibblesPerPosition {
-    //     PROTOCOL_VERSION = 2,
-    //     CHECKSUM         = 8,
-    // };
 
     enum class ProtocolPositions {
         PROTOCOL_VERSION = 0, // +1
@@ -46,8 +40,6 @@ public:
         }
         return group;
     }
-
-    std::unique_ptr<std::vector<unsigned char>> data();
 
 private:
     std::vector<std::unique_ptr<DataPackageType>> actions_;

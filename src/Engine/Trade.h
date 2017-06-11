@@ -17,7 +17,6 @@ public:
 };
 
 class Trade {
-    FAST_ALLOCATE(Trade)
 public:
     static void execute(std::unique_ptr<Order> buyOrder, std::unique_ptr<Order> sellOrder, Order::side_t taker);
     static void addDeligate(std::unique_ptr<TradeDeligate> deligate) { tradesDeligates_.push_back(std::move(deligate)); }

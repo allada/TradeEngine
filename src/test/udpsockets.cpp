@@ -4,6 +4,7 @@
 #include "API/DataPackage.h"
 #include "Net/UDPSocketRecvTask.h"
 #include <errno.h>
+#include <algorithm>
 
 #define UDP_TEST_IP "127.0.0.5"
 
@@ -40,33 +41,55 @@ private:
 
 };
 
-std::unique_ptr<API::DataPackage> package_;
+std::vector<unsigned char> receivedData_;
 
 class HandlePackageForTest : public API::StreamDispatcher {
 public:
-    void processPackage(std::unique_ptr<API::DataPackage> package) override
+    void processData(Hash originHash, unsigned char* begin, size_t len) override
     {
-        package_ = std::move(package);
+        receivedData_.reserve(len);
+        std::copy(begin, begin + len, std::back_inserter(receivedData_));
     }
 };
 
 class UDPTest : public ::testing::Test {
 };
 
-// TEST(UDPTest, Recv1Byte) {
-//     UDPSocketRecvTask udpRecv(WrapUnique(new HandlePackageForTest));
-//     UDPStreamHelper udpStreamHelper(UDP_TEST_IP, SERV_PORT);
+TEST(UDPTest, RecvBasicData) {
+    UDPSocketRecvTask udpRecv(WrapUnique(new HandlePackageForTest));
+    UDPStreamHelper udpStreamHelper(UDP_TEST_IP, SERV_PORT);
 
-//     const std::vector<unsigned char, 38> dummyData1 = {"Hello foo bar!\n"};
+    const std::string rawData1 = "Hello foo bar!\n";
+    const std::vector<unsigned char> dummyData1(rawData1.begin(), rawData1.end());
 
-//     udpStreamHelper.send(dummyData1);
-//     udpRecv.run();
+    udpStreamHelper.send(dummyData1);
+    udpRecv.run();
 
-//     ASSERT_NE(package_, nullptr);
+    ASSERT_EQ(receivedData_.size(), dummyData1.size());
+    ASSERT_EQ(receivedData_, dummyData1);
+    receivedData_.clear();
+}
 
-//     ASSERT_EQ(package_->data()->size(), dummyData1.size());
-//     ASSERT_EQ(package_->data().get(), dummyData1);
-//     package_ = nullptr;
-// }
+TEST(UDPTest, RecvMultipleChunksOfData) {
+    UDPSocketRecvTask udpRecv(WrapUnique(new HandlePackageForTest));
+    UDPStreamHelper udpStreamHelper(UDP_TEST_IP, SERV_PORT);
+
+    const std::string rawData1 = "foo\n";
+    const std::vector<unsigned char> dummyData1(rawData1.begin(), rawData1.end());
+    const std::string rawData2 = "baring";
+    const std::vector<unsigned char> dummyData2(rawData2.begin(), rawData2.end());
+
+    udpStreamHelper.send(dummyData1);
+    udpStreamHelper.send(dummyData2);
+    udpRecv.run();
+
+    ASSERT_EQ(receivedData_.size(), dummyData1.size() + dummyData2.size());
+
+    std::vector<unsigned char> receivedDataSlice1(receivedData_.begin(), receivedData_.begin() + dummyData1.size());
+    std::vector<unsigned char> receivedDataSlice2(receivedData_.begin() + dummyData1.size(), receivedData_.end());
+    ASSERT_EQ(receivedDataSlice1, dummyData1);
+    ASSERT_EQ(receivedDataSlice2, dummyData2);
+    receivedData_.clear();
+}
 
 } // namespace

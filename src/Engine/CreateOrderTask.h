@@ -11,7 +11,6 @@
 namespace Engine {
 
 class CreateOrderTask : public virtual Threading::Tasker {
-    FAST_ALLOCATE(CreateOrderTask)
 public:
     CreateOrderTask(std::unique_ptr<Order> order)
         : order_(std::move(order))

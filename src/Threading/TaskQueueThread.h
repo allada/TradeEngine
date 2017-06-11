@@ -6,6 +6,7 @@
 #include "Tasker.h"
 #include <condition_variable>
 #include <mutex>
+#include <atomic>
 
 namespace Threading {
 

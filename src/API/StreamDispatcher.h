@@ -9,7 +9,6 @@
 namespace API {
 
 class StreamDispatcher {
-    FAST_ALLOCATE(StreamDispatcher)
 public:
     typedef uint32_t Hash;
 
@@ -18,7 +17,7 @@ public:
         return static_cast<Hash>(::crc32(ptr, len, static_cast<uint32_t>(previousHash)));
     }
 
-    void processData(Hash originHash, unsigned char* begin, size_t len)
+    VIRTUAL_FOR_TEST void processData(Hash originHash, unsigned char* begin, size_t len)
     {
         std::unique_ptr<DataPackage> package(new DataPackage);
         if (!package->setData(begin, len)) {
@@ -28,12 +27,12 @@ public:
         processPackage(std::move(package));
     }
 
-    VIRTUAL_FOR_TEST void processPackage(std::unique_ptr<DataPackage> package)
+    void processPackage(std::unique_ptr<DataPackage> package)
     {
         EXPECT_NE(package.get(), nullptr);
 
         std::unique_ptr<Threading::Tasker> task = package->makeTask();
-        if (UNLIKELY(!task.get())) {
+        if (!task.get()) {
             return;
         }
 

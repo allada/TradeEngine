@@ -23,10 +23,9 @@
 #include <errno.h>
 #include <fstream>
 #include <iostream>
-//#include "Engine/ProcessOrderTask.h"
 
 std::shared_ptr<Threading::MainThread> mainThread;
-typedef std::chrono::high_resolution_clock Clock;
+typedef std::chrono::steady_clock Clock;
 
 std::string coin_name;
 
@@ -63,33 +62,27 @@ public:
             if (bufferSize < PACKAGE_SIZE) {
                 break;
             }
-            size_t chunkSize = MAX_PACKET_SIZE; //(std::min(bufferSize, MAX_PACKET_SIZE) / PACKAGE_SIZE) * PACKAGE_SIZE;
+            size_t chunkSize = MAX_PACKET_SIZE;
             EXPECT_GT(MAX_PACKET_SIZE + 1, chunkSize);
-            //EXPECT_EQ(chunkSize % PACKAGE_SIZE, 0);
             
             TaskSendBuffer::dataQueue.popChunk(chunk, chunkSize);
 
             for (size_t i = 0; i < chunkSize; ) {
 
-                
-std::this_thread::sleep_for(std::chrono::microseconds(5000));
-                //std::this_thread::sleep_for(std::chrono::microseconds(700));
-                //std::this_thread::sleep_for(std::chrono::microseconds(1233));
-                //std::this_thread::sleep_for(std::chrono::microseconds(2033));
-                //std::this_thread::sleep_for(std::chrono::microseconds(1700));
+                // Wait here because we need time to let the IO thread buffer cleanup a bit.
+                std::this_thread::sleep_for(std::chrono::microseconds(2000));
 
                 ssize_t len = sendto(udpSendSock, chunk.data() + i, chunkSize, 0, (struct sockaddr *) &servAddr_, sizeof(servAddr_));
 
                 if (errno) {
-                    //DBG("%lu", errno);
+                    WARNING("%lu", errno);
                 }
 
                 EXPECT_EQ(chunkSize, len);
-                //fprintf(stderr, "Sent %lu bytes\n", len);
                 if (len == -1) {
-                    fprintf(stderr, "ERROR! %d\n", errno);
+                    WARNING("Length of sent data is -1. errorno: %zu", errno);
                 } else {
-                    i += len; //(len / PACKAGE_SIZE) * PACKAGE_SIZE;
+                    i += len;
                     totalDataSent += len;
                 }
             }
@@ -111,7 +104,6 @@ std::this_thread::sleep_for(std::chrono::microseconds(5000));
 
 Threading::TaskQueue<unsigned char, 16777215> TaskSendBuffer::dataQueue;
 std::atomic_flag TaskSendBuffer::isRunning = ATOMIC_FLAG_INIT;
-
 
 size_t ordersSentCount = 0;
 std::condition_variable doneCv;
@@ -170,9 +162,9 @@ int main(int argc, char* argv[])
 
         ioThread->addSocketTasker(WrapUnique(new Net::UDPSocketRecvTask));
 
-Engine::SellLedger::instance()->setDeligate(WrapUnique(new OrderCounter));
-Engine::BuyLedger::instance()->setDeligate(WrapUnique(new OrderCounter));
-Engine::Trade::addDeligate(WrapUnique(new OrderCounter));
+        Engine::SellLedger::instance()->setDeligate(WrapUnique(new OrderCounter));
+        Engine::BuyLedger::instance()->setDeligate(WrapUnique(new OrderCounter));
+        Engine::Trade::addDeligate(WrapUnique(new OrderCounter));
 
         udpSendSock = static_cast<FileDescriptor>(socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP));
 
@@ -182,7 +174,6 @@ Engine::Trade::addDeligate(WrapUnique(new OrderCounter));
 
         const int broadcast = 1;
         setsockopt(udpSendSock, SOL_SOCKET, SO_BROADCAST, &broadcast, sizeof(const int));
-        // fcntl(udpSendSock, F_SETFL, O_NONBLOCK);
 
         const auto start = Clock::now();
 
@@ -193,53 +184,22 @@ Engine::Trade::addDeligate(WrapUnique(new OrderCounter));
         orderStream.seekg(startPos, std::ios::beg);
 
         ordersSentCount = (size_t(size) - (size_t(size) / MAX_PACKET_SIZE * 6)) / PACKAGE_SIZE;
- //std::unique_ptr<API::DataPackage> partialPackage;
 
         std::vector<unsigned char> orderData(MAX_PACKET_SIZE);
         for (size_t i = size; i > startPos;) {
             size_t sz = i > MAX_PACKET_SIZE ? MAX_PACKET_SIZE : i;
             
             orderStream.read(reinterpret_cast<char *>(orderData.data()), sz);
-            // while (TaskSendBuffer::dataQueue.availableSize() < sz) {
-            //     std::this_thread::sleep_for(std::chrono::microseconds(100));
-            // }
             
-           TaskSendBuffer::dataQueue.pushChunk(orderData, sz);
-           TaskSendBuffer::scheduleForRun();
-
-// size_t consumedLength = 0;
-//             while (consumedLength < sz) {
-
-//                 std::unique_ptr<API::DataPackage> package;
-//                 if (partialPackage) {
-//                     package = std::move(partialPackage);
-//                 } else {
-//                     package = WrapUnique(new API::DataPackage);
-//                 }
-//                 consumedLength += package->appendData(&orderData[consumedLength], sz - consumedLength);
-
-//                 EXPECT_TRUE(package->isDone() || consumedLength == sz); // API Data Package has not consumed all the data and is not done
-
-//                 if (package->isDone()) {
-//                     // TODO Send to IO thread?
-//                     if (UNLIKELY(!package->quickVerify())) {
-//                         WARNING("QUICK VERIFY FAILED");
-//                         --ordersSentCount;
-//                         continue;
-//                     }
-//                     uiThread->addTask(WrapUnique(new Engine::ProcessOrderTask(std::move(package))));
-//                     //++ordersSentCount;
-//                 } else {
-//                     partialPackage = std::move(package);
-//                 }
-//             }
+            TaskSendBuffer::dataQueue.pushChunk(orderData, sz);
+            TaskSendBuffer::scheduleForRun();
 
             i -= sz;
         }
         orderStream.close();
 
-fprintf(stderr, "SENT: %lu of %lu\n", OrderCounter::ordersReceived.load(), ordersSentCount);
-fprintf(stderr, "DataReceived: %lu, DataSent: %lu\n", Net::UDPSocketRecvTask::total_data_received_, totalDataSent);
+        fprintf(stderr, "SENT: %lu of %lu\n", OrderCounter::ordersReceived.load(), ordersSentCount);
+        fprintf(stderr, "DataReceived: %lu, DataSent: %lu\n", Net::UDPSocketRecvTask::total_data_received_, totalDataSent);
 
         {
             std::mutex mux;
@@ -247,7 +207,7 @@ fprintf(stderr, "DataReceived: %lu, DataSent: %lu\n", Net::UDPSocketRecvTask::to
             doneCv.wait(lock, [](){ return ordersSentCount <= OrderCounter::ordersReceived.load(); });
         }
 
-fprintf(stderr, "DataReceived: %lu, DataSent: %lu\n", Net::UDPSocketRecvTask::total_data_received_, totalDataSent);
+        fprintf(stderr, "DataReceived: %lu, DataSent: %lu\n", Net::UDPSocketRecvTask::total_data_received_, totalDataSent);
 
         const auto end = Clock::now();
         const auto timeTaken = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count() / 1000 / 1000;
@@ -256,15 +216,17 @@ fprintf(stderr, "DataReceived: %lu, DataSent: %lu\n", Net::UDPSocketRecvTask::to
         fprintf(stderr, "Orders Executed: %lu\n", OrderCounter::ordersProcessed.load());
         fprintf(stderr, "Orders Received: %lu\n", OrderCounter::ordersReceived.load());
         fprintf(stderr, "Time taken: %ld milli seconds\n", timeTaken);
-        if (timeTaken / 1000 > 0)
+        if (timeTaken / 1000 > 0) {
             fprintf(stderr, "Trades per second: %lu\n", OrderCounter::tradesExecuted.load() / (timeTaken / 1000));
+        }
         fprintf(stderr, "Data Sent: %.2f mb\n", float(totalDataSent) / 1000 / 1000);
         fprintf(stderr, "Orders Per Second: %lu\n", OrderCounter::ordersProcessed.load() * 1000 / timeTaken);
-        if ((float(timeTaken) / 1000) / 1000 / 1000 > 0)
+        if ((float(timeTaken) / 1000) / 1000 / 1000 > 0) {
             fprintf(stderr, "Bytes Per Second: %.1f mbps\n", float(totalDataSent) / (float(timeTaken) / 1000) / 1000 / 1000);
+        }
         fprintf(stderr, "ACCUM_TIME: %lu ms\n", PROFILER_ACCUM / 1000 / 1000);
 
-        //signal(SIGINT, signalHandler);
+        signal(SIGINT, signalHandler);
         if (argc < 2 || strlen(argv[1]) < 1) {
             fprintf(stderr, "First parameter must be a valid coin abbr name.\n");
             raise(SIGINT);
@@ -272,11 +234,6 @@ fprintf(stderr, "DataReceived: %lu, DataSent: %lu\n", Net::UDPSocketRecvTask::to
         coin_name = argv[1];
         Threading::ThreadManager::killAll();
         Threading::ThreadManager::joinAll();
-        // MemoryBucket::terminate();
-
-        // Engine::SellLedger::reset();
-        // Engine::BuyLedger::reset();
-        // Engine::Trade::removeDeligatesForTest();
     }
     DEBUG("Exiting main function");
     return 0;

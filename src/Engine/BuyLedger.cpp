@@ -115,18 +115,21 @@ void BuyLedger::reset()
 {
     EXPECT_UI_THREAD();
     size_t i = 0;
-    count_ = 0;
-    QueueOrders** orderQueue = reinterpret_cast<QueueOrders**>(JudyLFirst(PJLArray, &i, PJE0));
-    while (orderQueue != NULL) {
-        while (!(*orderQueue)->empty()) {
-            Order* order = (*orderQueue)->front();
-            (*orderQueue)->pop();
+    QueueOrders** orderQueueRef = reinterpret_cast<QueueOrders**>(JudyLFirst(PJLArray, &i, PJE0));
+    while (orderQueueRef != NULL) {
+        QueueOrders* orderQueue = *orderQueueRef;
+        EXPECT_FALSE(orderQueue->empty());
+        while (!orderQueue->empty()) {
+            Order* order = orderQueue->front();
+            orderQueue->pop();
             delete order;
+            --count_;
         }
-        delete *orderQueue;
-        orderQueue = reinterpret_cast<QueueOrders**>(JudyLNext(PJLArray, &i, PJE0));
+        delete orderQueue;
+        orderQueueRef = reinterpret_cast<QueueOrders**>(JudyLNext(PJLArray, &i, PJE0));
     }
     JudyLFreeArray(&PJLArray, PJE0);
     PJLArray = (Pvoid_t) NULL;
     deligate_ = nullptr;
+    EXPECT_EQ(count_, 0);
 }

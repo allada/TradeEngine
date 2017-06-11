@@ -7,7 +7,6 @@
 namespace Threading {
 
 class TaskerGroup : public virtual Threading::Tasker {
-    FAST_ALLOCATE(TaskerGroup)
 public:
     TaskerGroup(size_t sz = 0)
     {

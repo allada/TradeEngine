@@ -27,13 +27,6 @@ uint8_t version_(const unsigned char* data)
     return reinterpret_cast<const uint8_t&>(data[static_cast<int>(DataPackage::ProtocolPositions::PROTOCOL_VERSION)]);
 }
 
-std::unique_ptr<std::vector<unsigned char>> DataPackage::data() {
-    std::unique_ptr<std::vector<unsigned char>> output;
-    output->push_back(ACTIVE_PROTOCOL_VERSION);
-    //output->push_back(1, 1, 4);
-    return output;
-}
-
 bool DataPackage::setData(const unsigned char* data, size_t len)
 {
     if (len <= HEADER_SIZE) {
@@ -57,12 +50,12 @@ bool DataPackage::setData(const unsigned char* data, size_t len)
             case action_type_t::CREATE_ORDER: {
                 std::unique_ptr<CreateOrderPackage> action = WrapUnique(new CreateOrderPackage);
 
-                if (UNLIKELY(data + CreateOrderPackage::PACKAGE_SIZE > end)) {
+                if (data + CreateOrderPackage::PACKAGE_SIZE > end) {
                     EXPECT_TRUE(false);
                     WARNING("Buffer Overflow from socket prevented: %lu > %lu", data + CreateOrderPackage::PACKAGE_SIZE, end);
                     break;
                 }
-                if (UNLIKELY(!action->setData(data, CreateOrderPackage::PACKAGE_SIZE))) {
+                if (!action->setData(data, CreateOrderPackage::PACKAGE_SIZE)) {
                     data += CreateOrderPackage::PACKAGE_SIZE;
                     break;
                 }

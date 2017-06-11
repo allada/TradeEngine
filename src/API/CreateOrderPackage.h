@@ -10,7 +10,6 @@
 namespace API {
 
 class CreateOrderPackage : public virtual DataPackageType {
-    FAST_ALLOCATE(CreateOrderPackage)
 private:
     struct NibblesPerPosition_ {
         static constexpr int ACTION_TYPE  = 2;
@@ -93,7 +92,7 @@ public:
 
     bool setData(const unsigned char* data, size_t len)
     {
-        if (UNLIKELY(len < PACKAGE_SIZE)) {
+        if (len < PACKAGE_SIZE) {
             WARNING("CreateOrderPackage size not large enough, got %lu but must be at least %lu", len, PACKAGE_SIZE);
             return false;
         }
