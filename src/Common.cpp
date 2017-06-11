@@ -1,17 +1,20 @@
 #include "Common.h"
+#include "Threading/ThreadManager.h"
+
+size_t PROFILER_ACCUM = 0;
 
 #ifdef TERMINAL_COLOR
-    #include "Thread/Threader.h"
+    #include "Threading/Threader.h"
     #include <unordered_map>
 
-    static inline const std::string resetColor()
+    static const std::string resetColor()
     {
         return "\033[0;" + std::to_string(TerminalColor::DEFAULT) + 'm';
     }
 
     const std::string& debugthisThreadName_()
     {
-        return Thread::thisThreadName();
+        return Threading::thisThreadName();
     }
 
     static constexpr TerminalColor::Color colors_[3] = { TerminalColor::RED, TerminalColor::GREEN, TerminalColor::BLUE };
@@ -62,3 +65,12 @@ template<> const char* fmtLookupTable<void*>()
 {
     return "%p";
 }
+#if IS_DEBUG || defined(IS_TEST)
+    bool isIoThread() {
+        return Threading::ioThread().get() == Threading::ThreadManager::thisThread().get();
+    }
+
+    bool isUiThread() {
+        return Threading::uiThread().get() == Threading::ThreadManager::thisThread().get();
+    }
+#endif

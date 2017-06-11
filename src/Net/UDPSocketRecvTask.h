@@ -1,30 +1,30 @@
 #ifndef UDPSocketRecvTask_h
 #define UDPSocketRecvTask_h
 
-#include "../Thread/SocketTasker.h"
+#include "../Threading/SocketTasker.h"
 #include <netinet/in.h>
 #include <unordered_map>
-#include "APIDataPackage.h"
+#include "../API/StreamDispatcher.h"
 #include "../Common.h"
 
 // TODO Move this config data somewhere else.
 #define SERV_PORT 3010
-#define MAX_BUFF_SIZE 2048
+#define MAX_BUFF_SIZE 65507
 
 namespace Net {
 
-class UDPSocketRecvTask : public Thread::SocketTasker {
+class UDPSocketRecvTask : public Threading::SocketTasker {
 public:
-    UDPSocketRecvTask();
+    UDPSocketRecvTask()
+        : UDPSocketRecvTask(WrapUnique(new API::StreamDispatcher())) { }
+    explicit UDPSocketRecvTask(std::unique_ptr<API::StreamDispatcher>);
 
     void run() override;
 
-    VIRTUAL_FOR_TEST void packageReady(std::unique_ptr<APIDataPackage>);
+    static size_t total_data_received_;
 
 private:
-    size_t hashAddr(const sockaddr_in&);
-
-    std::unordered_map<size_t, std::unique_ptr<APIDataPackage>> partial_packages_;
+    std::unique_ptr<API::StreamDispatcher> stream_dispatcher_;
 
 };
 

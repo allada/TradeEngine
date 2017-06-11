@@ -2,6 +2,8 @@ cmake_minimum_required (VERSION 2.6)
 set(CMAKE_C_COMPILER                  "/usr/bin/clang-3.8")
 set(CMAKE_CXX_COMPILER                "/usr/bin/clang++-3.8")
 
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
 project (TradeEngine)
 
 if("$ENV{DEBUG_OUTPUT}" STREQUAL "1")
@@ -14,45 +16,57 @@ endif()
 
 find_package(Threads REQUIRED)
 
-set(CMAKE_CXX_FLAGS                   "-g -O0 -Wall -std=c++11 -v -lJudy -lSegFault ${DEBUG_OUTPUT}")
+if("$ENV{OPRIMIZED}" STREQUAL "1")
+    set(CMAKE_CXX_FLAGS                   "-Ofast -march=native -Wall -std=c++11 ${DEBUG_OUTPUT}")
+else()
+    set(CMAKE_CXX_FLAGS                   "-g -O0 -Wall -std=c++11 ${DEBUG_OUTPUT}")
+endif()
+
 set(BASEPATH                          "${CMAKE_SOURCE_DIR}/src")
 include_directories(${BASEPATH})
 
 set(
     HEADERS
-        src/Thread/SocketPollThread.h
-        src/Thread/SocketTasker.h
-        src/Thread/Thread.h
-        src/Thread/Threader.h
-        src/Thread/Tasker.h
-        src/Thread/MainThread.h
-        src/Thread/ThreadManager.h
-        src/Thread/TaskQueue.h
-        src/Thread/TaskQueueThread.h
+        src/Threading/SocketPollThread.h
+        src/Threading/SocketTasker.h
+        src/Threading/Thread.h
+        src/Threading/Threader.h
+        src/Threading/Tasker.h
+        src/Threading/TaskerGroup.h
+        src/Threading/MainThread.h
+        src/Threading/ThreadManager.h
+        src/Threading/TaskQueue.h
+        src/Threading/TaskQueueThread.h
         src/Common.h
 
         src/includes/crc32.h
 
-        src/Net/UDPSocketRecvTask.h
-        src/Net/APIDataPackage.h
+        src/API/DataPackage.h
+        src/API/DataPackageType.h
+        src/API/CreateOrderPackage.h
+        src/API/StreamDispatcher.h
 
+        src/Net/UDPSocketRecvTask.h
+
+        src/Engine/CreateOrderTask.h
         src/Engine/BuyLedger.h
         src/Engine/Order.h
         src/Engine/SellLedger.h
         src/Engine/Trade.h
-        src/Engine/TradeDeligate.h
+        src/Engine/Ledger.h
 )
 
 set(
     SOURCES
         src/Common.cpp
-        src/Thread/Threader.cpp
-        src/Thread/ThreadManager.cpp
-        src/Thread/SocketPollThread.cpp
-        src/Thread/TaskQueueThread.cpp
-        src/Net/UDPSocketRecvTask.cpp
+        src/Threading/Thread.cpp
+        src/Threading/Threader.cpp
+        src/Threading/ThreadManager.cpp
+        src/Threading/SocketPollThread.cpp
 
-        src/includes/crc32.cc
+        src/API/DataPackage.cpp
+
+        src/Net/UDPSocketRecvTask.cpp
 
         src/Engine/SellLedger.cpp
         src/Engine/BuyLedger.cpp
@@ -60,7 +74,7 @@ set(
 )
 
 add_executable(trader ${HEADERS} ${SOURCES} src/main.cpp)
-target_link_libraries(trader pthread)
+target_link_libraries(trader pthread Judy)
 
 project (TradeEngine_test)
 add_subdirectory(${CMAKE_SOURCE_DIR}/gtest)
@@ -79,4 +93,5 @@ target_link_libraries(${PROJECT_TEST_NAME}
 
 target_link_libraries(${PROJECT_TEST_NAME} ${CMAKE_THREAD_LIBS_INIT})
 target_compile_definitions(${PROJECT_TEST_NAME} PUBLIC -DIS_TEST)
-add_test(test1 ${PROJECT_TEST_NAME})
+add_test(test1 bin/${PROJECT_TEST_NAME})
+target_link_libraries(${PROJECT_TEST_NAME} pthread Judy)

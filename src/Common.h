@@ -7,6 +7,19 @@
 
 typedef int FileDescriptor;
 
+#include <chrono>
+extern size_t PROFILER_ACCUM;
+
+#define PROFILE_START_() \
+    auto _temp_profiler_start_time = std::chrono::high_resolution_clock::now();
+#define PROFILE_END_() \
+    PROFILER_ACCUM += std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now() - _temp_profiler_start_time).count();
+
+#define PROFILE_START() \
+    { PROFILE_START_()
+#define PROFILE_END() \
+    PROFILE_END() }
+
 #define STATIC_ONLY(Type) \
     private:              \
         Type() = delete;  \
@@ -17,9 +30,18 @@ typedef int FileDescriptor;
     public:
 
 template <typename T>
-inline std::unique_ptr<T> WrapUnique(T* ptr) {
+std::unique_ptr<T> WrapUnique(T* ptr) {
   return std::unique_ptr<T>(ptr);
 }
+
+template<typename T>
+struct is_unique_ptr 
+    : std::false_type {
+};
+template<typename T>
+struct is_unique_ptr<std::unique_ptr<T>> 
+    : std::true_type {
+};
 
 // Syntactic sugar to make Callback<void()> easier to declare since it
 // will be used in a lot of APIs with delayed execution.
@@ -67,7 +89,7 @@ using Closure = std::function<void()>;
     #include <cxxabi.h>
 
     /** Print a demangled stack backtrace of the caller function to FILE* out. */
-    static inline void print_stacktrace(FILE *out = stderr, unsigned int max_frames = 63)
+    inline static void print_stacktrace(FILE *out = stderr, unsigned int max_frames = 63)
     {
         fprintf(out, "stack trace:\n");
 
@@ -185,10 +207,10 @@ using Closure = std::function<void()>;
     #define VIRTUAL_FOR_TEST
 #endif
 
-template<typename L> const char* fmtLookupTable() { return "%p"; };
+template<typename L> inline const char* fmtLookupTable() { return "%p"; };
 
 template<typename T>
-static const char* fmt(T)
+inline static const char* fmt(T)
 {
     return fmtLookupTable<typename std::decay<T>::type>();
 }
@@ -214,6 +236,10 @@ static const char* fmt(T)
     #ifndef EXPECT_FALSE
         #define EXPECT_FALSE(...)
     #endif
+
+    #define EXPECT_MAIN_THREAD()
+    #define EXPECT_IO_THREAD()
+    #define EXPECT_UI_THREAD()
 #else
     #ifndef WARNING
         #define WARNING(...)
@@ -231,21 +257,27 @@ static const char* fmt(T)
     }
 
     #ifndef EXPECT_GT
-        #define EXPECT_GT(v1, v2) if (v1 > v2) { WARNING(CHAR_TO_STRING_("EXPECT FAIL ", ::fmt(v1), " > ", ::fmt(v2), " in %s:%d"), v1, v2, __FILE__, __LINE__); }
+        #define EXPECT_GT(v1, v2) if ((v1) < (v2)) { WARNING(CHAR_TO_STRING_("EXPECT FAIL ", ::fmt(v1), " > ", ::fmt(v2), " in %s:%d"), v1, v2, __FILE__, __LINE__); }
     #endif
     #ifndef EXPECT_EQ
-        #define EXPECT_EQ(v1, v2) if (v1 != v2) { WARNING(CHAR_TO_STRING_("EXPECT FAIL ", ::fmt(v1), " == ", ::fmt(v2), " in %s:%d"), v1, v2, __FILE__, __LINE__); }
+        #define EXPECT_EQ(v1, v2) if ((v1) != (v2)) { WARNING(CHAR_TO_STRING_("EXPECT FAIL ", ::fmt(v1), " == ", ::fmt(v2), " in %s:%d"), v1, v2, __FILE__, __LINE__); }
     #endif
     #ifndef EXPECT_NE
-        #define EXPECT_NE(v1, v2) if (v1 == v2) { WARNING(CHAR_TO_STRING_("EXPECT FAIL ", ::fmt(v1), " != ", ::fmt(v2), " in %s:%d"), v1, v2, __FILE__, __LINE__); }
+        #define EXPECT_NE(v1, v2) if ((v1) == (v2)) { WARNING(CHAR_TO_STRING_("EXPECT FAIL ", ::fmt(v1), " != ", ::fmt(v2), " in %s:%d"), v1, v2, __FILE__, __LINE__); }
     #endif
     #ifndef EXPECT_TRUE
-        #define EXPECT_TRUE(v) if (v) { WARNING("EXPECT FAIL in %s:%d", __FILE__, __LINE__); }
+        #define EXPECT_TRUE(v) if (!(v)) { WARNING("EXPECT TRUE in %s:%d", __FILE__, __LINE__); }
     #endif
     #ifndef EXPECT_FALSE
-        #define EXPECT_FALSE(v) if (!v) { WARNING("EXPECT FAIL in %s:%d", __FILE__, __LINE__); }
+        #define EXPECT_FALSE(v) if ((v)) { WARNING("EXPECT FAIL in %s:%d", __FILE__, __LINE__); }
     #endif
+
+    #define EXPECT_MAIN_THREAD() EXPECT_EQ(static_cast<int>(std::hash<std::thread::id>()(::Threading::ThreadManager::mainThreadId())), static_cast<int>(std::hash<std::thread::id>()(::Threading::ThreadManager::thisThreadId())))
+    bool isIoThread();
+    bool isUiThread();
+    #define EXPECT_IO_THREAD() if (!isIoThread()) { EXPECT_TRUE(false); WARNING("Expected IO Thread"); }
+    #define EXPECT_UI_THREAD() if (!isUiThread()) { EXPECT_TRUE(false); WARNING("Expected UI Thread"); }
+
 #endif
 
-#define EXPECT_MAIN_THREAD() EXPECT_EQ(static_cast<int>(std::hash<std::thread::id>()(::Thread::ThreadManager::mainThreadId())), static_cast<int>(std::hash<std::thread::id>()(::Thread::ThreadManager::thisThreadId())))
 #endif /* Common_h */

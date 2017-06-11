@@ -1,19 +1,19 @@
 #include "Trade.h"
 
-#include <vector>
+#include "BuyLedger.h"
+#include "SellLedger.h"
 
 using namespace Engine;
 
-static std::vector<std::unique_ptr<TradeDeligate>> tradesDeligates_;
+std::vector<std::unique_ptr<TradeDeligate>> Trade::tradesDeligates_;
 
-void Trade::execute(std::unique_ptr<Order> buyOrder, std::unique_ptr<Order> sellOrder, Order::OrderType taker)
+void Trade::execute(std::unique_ptr<Order> buyOrder, std::unique_ptr<Order> sellOrder, Order::side_t taker)
 {
+    EXPECT_UI_THREAD();
     EXPECT_NE(buyOrder->qty(), 0);
     EXPECT_NE(sellOrder->qty(), 0);
     Order::qty_t buyQty = buyOrder->qty();
     Order::qty_t sellQty = sellOrder->qty();
-    Order::price_t buyPrice = buyOrder->price();
-    Order::price_t sellPrice = sellOrder->price();
     std::shared_ptr<Trade> trade = WrapUnique(new Trade(std::move(buyOrder), std::move(sellOrder), taker));
     EXPECT_NE(trade->qty_, 0);
 
@@ -21,26 +21,9 @@ void Trade::execute(std::unique_ptr<Order> buyOrder, std::unique_ptr<Order> sell
 
     if (trade->qty_ != buyQty) {
         EXPECT_GT(buyQty, trade->qty_);
-        BuyLedger::addOrder(WrapUnique(new Order(buyPrice, buyQty - trade->qty_, Order::OrderType::BUY)));
+        BuyLedger::instance()->addOrder(WrapUnique(new Order(trade->sellOrder()->id(), trade->buyOrder()->price(), buyQty - trade->qty_, Order::side_t::BUY, trade->buyOrder()->type())));
     } else if (trade->qty_ != sellQty) {
         EXPECT_GT(sellQty, trade->qty_);
-        SellLedger::addOrder(WrapUnique(new Order(sellPrice, sellQty - trade->qty_, Order::OrderType::SELL)));
-    }
-}
-
-void Trade::addDeligate(std::unique_ptr<TradeDeligate> deligate)
-{
-    tradesDeligates_.push_back(std::move(deligate));
-}
-
-void Trade::removeDeligatesForTest()
-{
-    tradesDeligates_.clear();
-}
-
-void Trade::broadcast_(std::shared_ptr<Trade> trade)
-{
-    for (auto const& it: tradesDeligates_) {
-        it->tradeExecuted(trade);
+        SellLedger::instance()->addOrder(WrapUnique(new Order(trade->sellOrder()->id(), trade->sellOrder()->price(), sellQty - trade->qty_, Order::side_t::SELL, trade->sellOrder()->type())));
     }
 }
