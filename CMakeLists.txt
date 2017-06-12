@@ -47,6 +47,8 @@ set(
         src/API/StreamDispatcher.h
 
         src/Net/UDPSocketRecvTask.h
+        src/Net/Client.h
+        src/Net/ClientManager.h
 
         src/Engine/CreateOrderTask.h
         src/Engine/BuyLedger.h
@@ -67,6 +69,8 @@ set(
         src/API/DataPackage.cpp
 
         src/Net/UDPSocketRecvTask.cpp
+        src/Net/Client.cpp
+        src/Net/ClientManager.cpp
 
         src/Engine/SellLedger.cpp
         src/Engine/BuyLedger.cpp

@@ -57,7 +57,7 @@ class UDPTest : public ::testing::Test {
 
 TEST(UDPTest, RecvBasicData) {
     UDPSocketRecvTask udpRecv(WrapUnique(new HandlePackageForTest));
-    UDPStreamHelper udpStreamHelper(UDP_TEST_IP, SERV_PORT);
+    UDPStreamHelper udpStreamHelper(UDP_TEST_IP, Net::UDPSocketRecvTask::SERV_PORT);
 
     const std::string rawData1 = "Hello foo bar!\n";
     const std::vector<unsigned char> dummyData1(rawData1.begin(), rawData1.end());
@@ -72,7 +72,7 @@ TEST(UDPTest, RecvBasicData) {
 
 TEST(UDPTest, RecvMultipleChunksOfData) {
     UDPSocketRecvTask udpRecv(WrapUnique(new HandlePackageForTest));
-    UDPStreamHelper udpStreamHelper(UDP_TEST_IP, SERV_PORT);
+    UDPStreamHelper udpStreamHelper(UDP_TEST_IP, Net::UDPSocketRecvTask::SERV_PORT);
 
     const std::string rawData1 = "foo\n";
     const std::vector<unsigned char> dummyData1(rawData1.begin(), rawData1.end());

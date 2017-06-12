@@ -1,9 +1,9 @@
 #include "UDPSocketRecvTask.h"
 
-#include "../Threading/TaskQueueThread.h"
 #include <sys/socket.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <netinet/in.h>
 
 using namespace Net;
 

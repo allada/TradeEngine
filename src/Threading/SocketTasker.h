@@ -16,11 +16,11 @@ public:
 
     ~SocketTasker() override
     {
-        this->close();
+        close();
     }
 
-    FileDescriptor fileDescriptor() { return socket_; }
-    void close() {
+    FileDescriptor fileDescriptor() const { return socket_; }
+    virtual void close() {
         DEBUG("Socket %d closed", socket_);
         ::close(socket_);
     }

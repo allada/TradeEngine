@@ -170,7 +170,7 @@ int main(int argc, char* argv[])
 
         servAddr_.sin_family = AF_INET;
         servAddr_.sin_addr.s_addr = inet_addr("127.0.0.5");
-        servAddr_.sin_port = htons(SERV_PORT);
+        servAddr_.sin_port = htons(Net::UDPSocketRecvTask::SERV_PORT);
 
         const int broadcast = 1;
         setsockopt(udpSendSock, SOL_SOCKET, SO_BROADCAST, &broadcast, sizeof(const int));

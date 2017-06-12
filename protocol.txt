@@ -24,6 +24,11 @@ Flags {
     POST_ONLY = 0x1
 }
 
+Sequence Incrementer will always be +1 from previous packet. Uppon max
+number it will reset back to zero and continue gracefully. It is the
+responsibility of the data provider not to send more than max number
+packets since last ack.
+
 * Checksum will be CRC32 from ActionType to entire length of UDP packet.
 
  0 1 2 3 4 5 6 7   8 9 A B C D E F . 0 1 2 3 4 5 6 7   8 9 A B C D E F
@@ -31,6 +36,7 @@ Flags {
 |         Protocol Version         |           Checksum ...           |
 |                          ...  Checksum                              |
 |          ... Checksum            |            Unused                |
+|                        Sequence Incrementer                         |
 |                           Package Data ...                          |
 |---------------------------------------------------------------------|
 
@@ -64,7 +70,6 @@ GUID Order ID = 16 bytes
 if OrderType == DeleteOrder
 Delete Order
 
-
  0 1 2 3 4 5 6 7   8 9 A B C D E F . 0 1 2 3 4 5 6 7   8 9 A B C D E F
 |---------------------------------------------------------------------|
 |           Action Type(0x2)       |            Flags                 |
@@ -83,3 +88,67 @@ Delete Order
 |                            ... Price                                |
 |---------------------------------------------------------------------|
 
+
+Out of Band Transport Layer
+
+This layer is to allow subscription of data and reliablity of clients of the Engine (producers).
+This is the band that will be used to syncronize and notifications to clients about things like
+packet loss, pings, acknolegement of received data, exc...
+
+This layer is done over TCP.
+
+Action {
+    CLOSE = 0,
+    CLOSED = 1,
+    PING = 2,
+    PONG = 3,
+    ACK = 4,
+    NACK = 5
+}
+
+ 0 1 2 3 4 5 6 7   8 9 A B C D E F . 0 1 2 3 4 5 6 7   8 9 A B C D E F
+|---------------------------------------------------------------------|
+|         Protocol Version         |            Action                |
+|                           Package Data ...                          |
+|---------------------------------------------------------------------|
+
+if (ActionType == CLOSE)
+This will clean up resources on the Engine and close the connection. This is preferred way
+to close a connection. It's preferrable to let the Engine close the connection, however 
+ensure that the client will close it if it takes too long.
+[No Data]
+
+if (ActionType == CLOSED)
+It is safe to assume the Engine closed the connection gracefully and the Engine does not
+expect any more messages over this channel and will not send any more messages over this channel.
+(ie: socket should be closed immidiatly after).
+[No Data]
+
+if (ActionType == PING)
+The client or server should send a PONG action on this chanel. It will get hung up
+after about 10 seconds if no response.
+[No Data]
+
+if (ActionType == PONG)
+The server or client will send this frame if a PING frame is requested.
+[No Data]
+
+if (ActionType == ACK)
+
+Ack is not sent on every packet but rather it is sent to show it has received
+every packet up to and including this sequence incrementer.
+
+ 0 1 2 3 4 5 6 7   8 9 A B C D E F . 0 1 2 3 4 5 6 7   8 9 A B C D E F
+|---------------------------------------------------------------------|
+|                        Sequence Incrementer                         |
+|---------------------------------------------------------------------|
+
+if (ActionType == NACK)
+
+NAck is used to tell the client that a packet was not received or received out of
+sequence. The client is expected to re-send this packet over the UDP chanel.
+
+ 0 1 2 3 4 5 6 7   8 9 A B C D E F . 0 1 2 3 4 5 6 7   8 9 A B C D E F
+|---------------------------------------------------------------------|
+|                        Sequence Incrementer                         |
+|---------------------------------------------------------------------|
